@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liquidity Sweep Lab</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+
+  header { background: #1a1a2e; color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+  header span { font-size: 12px; color: #aaa; }
+
+  .refresh-btn { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  .refresh-btn:hover { background: #2563eb; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border-radius: 12px; padding: 16px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .stat-card .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-card .value { font-size: 28px; font-weight: 700; }
+  .stat-card.open  .value { color: #f59e0b; }
+  .stat-card.wins  .value { color: #10b981; }
+  .stat-card.losses .value { color: #ef4444; }
+  .stat-card.rate  .value { color: #3b82f6; }
+  .stat-card.pnl   .value { color: #6366f1; }
+
+  /* Variant badges */
+  .variants { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .variant-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .variant-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #555; }
+  .variant-card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
+  .variant-card .row span:last-child { font-weight: 600; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .tag.engulfing      { background: #dbeafe; color: #1d4ed8; }
+  .tag.ob             { background: #ede9fe; color: #6d28d9; }
+  .tag.live_engulfing { background: #dcfce7; color: #15803d; }
+  .tag.live_ob        { background: #fef9c3; color: #854d0e; }
+
+  /* Section title */
+  .section-title { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .dot.open   { background: #f59e0b; }
+  .dot.closed { background: #6b7280; }
+
+  /* Tables */
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,.08); overflow: hidden; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: #f8f9fa; }
+  th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #eee; }
+  td { padding: 10px 14px; border-bottom: 1px solid #f0f0f0; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafafa; }
+
+  .side-buy  { color: #10b981; font-weight: 700; }
+  .side-sell { color: #ef4444; font-weight: 700; }
+  .pnl-pos   { color: #10b981; font-weight: 600; }
+  .pnl-neg   { color: #ef4444; font-weight: 600; }
+
+  .empty { text-align: center; color: #aaa; padding: 24px; font-size: 13px; }
+  .loading { text-align: center; color: #aaa; padding: 24px; font-size: 13px; }
+
+  .last-update { font-size: 11px; color: #aaa; text-align: center; margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 Liquidity Sweep Lab</h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="last-update">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Stats globales -->
+  <div class="stats">
+    <div class="stat-card open">
+      <div class="label">Abiertas</div>
+      <div class="value" id="s-open">—</div>
+    </div>
+    <div class="stat-card wins">
+      <div class="label">Wins</div>
+      <div class="value" id="s-wins">—</div>
+    </div>
+    <div class="stat-card losses">
+      <div class="label">Losses</div>
+      <div class="value" id="s-losses">—</div>
+    </div>
+    <div class="stat-card rate">
+      <div class="label">Win Rate</div>
+      <div class="value" id="s-rate">—</div>
+    </div>
+    <div class="stat-card pnl">
+      <div class="label">PnL Total</div>
+      <div class="value" id="s-pnl">—</div>
+    </div>
+  </div>
+
+  <!-- Por variante -->
+  <div class="variants">
+    <div class="variant-card">
+      <h3><span class="tag engulfing">engulfing</span> <small style="color:#888;font-size:10px">paper</small></h3>
+      <div class="row"><span>Wins</span><span id="e-wins">—</span></div>
+      <div class="row"><span>Losses</span><span id="e-losses">—</span></div>
+      <div class="row"><span>Win Rate</span><span id="e-rate">—</span></div>
+      <div class="row"><span>PnL</span><span id="e-pnl">—</span></div>
+    </div>
+    <div class="variant-card">
+      <h3><span class="tag ob">order block</span> <small style="color:#888;font-size:10px">paper</small></h3>
+      <div class="row"><span>Wins</span><span id="o-wins">—</span></div>
+      <div class="row"><span>Losses</span><span id="o-losses">—</span></div>
+      <div class="row"><span>Win Rate</span><span id="o-rate">—</span></div>
+      <div class="row"><span>PnL</span><span id="o-pnl">—</span></div>
+    </div>
+    <div class="variant-card">
+      <h3><span class="tag live_engulfing">live engulfing</span> <small style="color:#15803d;font-size:10px;font-weight:600">● real</small></h3>
+      <div class="row"><span>Wins</span><span id="le-wins">—</span></div>
+      <div class="row"><span>Losses</span><span id="le-losses">—</span></div>
+      <div class="row"><span>Win Rate</span><span id="le-rate">—</span></div>
+      <div class="row"><span>PnL</span><span id="le-pnl">—</span></div>
+    </div>
+  </div>
+
+  <!-- Posiciones abiertas -->
+  <div class="section-title"><span class="dot open"></span> Posiciones Abiertas</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Invertido</th>
+          <th>Entrada</th>
+          <th>SL</th>
+          <th>TP</th>
+          <th>Variante</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody id="open-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Últimos trades cerrados -->
+  <div class="section-title"><span class="dot closed"></span> Últimos Trades Cerrados</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Resultado</th>
+          <th>Invertido</th>
+          <th>PnL</th>
+          <th>PnL %</th>
+          <th>Variante</th>
+          <th>Hora UTC</th>
+        </tr>
+      </thead>
+      <tbody id="closed-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="last-update" id="footer">—</div>
+</div>
+
+<script>
+const SB_URL = "https://xjznnlzvurfwrhomkxed.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
+
+async function sbFetch(table, params = "") {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+  });
+  return r.json();
+}
+
+function fmt(n, dec = 4) {
+  if (n == null) return "—";
+  return parseFloat(n).toFixed(dec);
+}
+
+function winRate(w, l) {
+  const t = w + l;
+  if (!t) return "—";
+  return (w / t * 100).toFixed(1) + "%";
+}
+
+async function loadData() {
+  document.getElementById("last-update").textContent = "Actualizando...";
+
+  const [open, closed] = await Promise.all([
+    sbFetch("trades", "status=eq.open&order=open_time.desc"),
+    sbFetch("trades", "status=eq.closed&order=close_time.desc&limit=30")
+  ]);
+
+  // ── Stats globales ────────────────────────────────────
+  const wins   = closed.filter(t => t.pnl_usdt > 0).length;
+  const losses = closed.filter(t => t.pnl_usdt < 0).length;
+  const totalPnl = closed.reduce((s, t) => s + (t.pnl_usdt || 0), 0);
+
+  document.getElementById("s-open").textContent   = open.length;
+  document.getElementById("s-wins").textContent   = wins;
+  document.getElementById("s-losses").textContent = losses;
+  document.getElementById("s-rate").textContent   = winRate(wins, losses);
+  document.getElementById("s-pnl").textContent    = (totalPnl >= 0 ? "+" : "") + totalPnl.toFixed(2);
+
+  // ── Por variante ──────────────────────────────────────
+  [["engulfing","e"], ["ob","o"], ["live_engulfing","le"]].forEach(([v, prefix]) => {
+    const vt = closed.filter(t => t.bot_variant === v);
+    const vw = vt.filter(t => t.pnl_usdt > 0).length;
+    const vl = vt.filter(t => t.pnl_usdt < 0).length;
+    const vp = vt.reduce((s, t) => s + (t.pnl_usdt || 0), 0);
+    document.getElementById(`${prefix}-wins`).textContent   = vw;
+    document.getElementById(`${prefix}-losses`).textContent = vl;
+    document.getElementById(`${prefix}-rate`).textContent   = winRate(vw, vl);
+    document.getElementById(`${prefix}-pnl`).textContent    = (vp >= 0 ? "+" : "") + vp.toFixed(2);
+  });
+
+  // ── Posiciones abiertas ───────────────────────────────
+  const ob = document.getElementById("open-body");
+  if (!open.length) {
+    ob.innerHTML = `<tr><td colspan="8" class="empty">Sin posiciones abiertas</td></tr>`;
+  } else {
+    ob.innerHTML = open.map(t => {
+      const invested = (parseFloat(t.amount || 0) * parseFloat(t.entry || 0));
+      return `
+      <tr>
+        <td><strong>${t.symbol}</strong></td>
+        <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+        <td>$${invested.toFixed(2)}</td>
+        <td>${fmt(t.entry)}</td>
+        <td>${fmt(t.sl)}</td>
+        <td>${fmt(t.tp)}</td>
+        <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+        <td>${t.open_time ? t.open_time.substring(11,16) + " UTC" : "—"}</td>
+      </tr>
+    `}).join("");
+  }
+
+  // ── Trades cerrados ───────────────────────────────────
+  const cb = document.getElementById("closed-body");
+  if (!closed.length) {
+    cb.innerHTML = `<tr><td colspan="8" class="empty">Sin trades cerrados aún</td></tr>`;
+  } else {
+    cb.innerHTML = closed.map(t => {
+      const pnl      = parseFloat(t.pnl_usdt || 0);
+      const invested = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
+      const pnlPct   = invested > 0 ? (pnl / invested * 100) : 0;
+      const pnlClass = pnl >= 0 ? "pnl-pos" : "pnl-neg";
+      const pnlStr   = (pnl >= 0 ? "+" : "") + pnl.toFixed(2);
+      const pnlPctStr= (pnlPct >= 0 ? "+" : "") + pnlPct.toFixed(2) + "%";
+      const result   = t.close_reason === "TP" ? "✅ TP" : t.close_reason === "SL" ? "❌ SL" : t.close_reason || "—";
+      return `
+        <tr>
+          <td><strong>${t.symbol}</strong></td>
+          <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+          <td>${result}</td>
+          <td>$${invested.toFixed(2)}</td>
+          <td class="${pnlClass}">${pnlStr}</td>
+          <td class="${pnlClass}">${pnlPctStr}</td>
+          <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+          <td>${t.hour_utc != null ? t.hour_utc + ":00" : "—"}</td>
+        </tr>
+      `;
+    }).join("");
+  }
+
+  const now = new Date().toLocaleTimeString("es-AR");
+  document.getElementById("last-update").textContent = now;
+  document.getElementById("footer").textContent = `Última actualización: ${now}`;
+}
+
+loadData();
+setInterval(loadData, 60000); // auto-refresh cada 60s
+</script>
+</body>
+</html>
