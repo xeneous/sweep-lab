@@ -9,60 +9,89 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
 
-  header { background: #1a1d27; color: #fff; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2d3148; }
-  header h1 { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
-  .refresh-btn { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 6px 14px; font-size: 13px; cursor: pointer; }
+  header {
+    background: #1a1d27; color: #fff; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #2d3148; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 16px; font-weight: 700; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .clock { font-size: 12px; color: #64748b; }
+  .refresh-btn { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
   .refresh-btn:hover { background: #2563eb; }
 
-  .container { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+  .container { max-width: 900px; margin: 0 auto; padding: 14px 12px; }
 
-  /* Stats */
-  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
-  .stat-card { background: #1a1d27; border-radius: 12px; padding: 16px; text-align: center; border: 1px solid #2d3148; }
-  .stat-card .label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-  .stat-card .value { font-size: 28px; font-weight: 700; }
-  .stat-card.open   .value { color: #f59e0b; }
-  .stat-card.wins   .value { color: #10b981; }
-  .stat-card.losses .value { color: #ef4444; }
-  .stat-card.rate   .value { color: #60a5fa; }
-  .stat-card.pnl    .value { color: #a78bfa; }
-
-  /* Variant cards */
-  .variants { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-  .variant-card {
-    background: #1a1d27; border-radius: 12px; padding: 16px;
-    border: 2px solid #2d3148;
-    cursor: pointer;
-    transition: border-color .15s, box-shadow .15s;
+  /* ── Resumen card ── */
+  .resumen-card {
+    background: #1a1d27; border-radius: 12px;
+    border: 1px solid #2d3148; margin-bottom: 12px;
+    overflow: hidden;
   }
-  .variant-card:hover { border-color: #3b4268; }
-  .variant-card.active-filter { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.2); }
-  .variant-card h3 { font-size: 13px; font-weight: 600; margin-bottom: 10px; color: #94a3b8; display: flex; align-items: center; gap: 6px; }
-  .variant-card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; color: #94a3b8; }
-  .variant-card .row span:last-child { font-weight: 600; color: #e2e8f0; }
+  .resumen-stats {
+    display: flex; align-items: stretch;
+    padding: 10px 12px; gap: 0;
+  }
+  .rs {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 4px 6px;
+    border-right: 1px solid #2d3148;
+  }
+  .rs:last-of-type { border-right: none; }
+  .rs-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; white-space: nowrap; }
+  .rs-val   { font-size: 20px; font-weight: 700; line-height: 1; }
+  .rs-val.open    { color: #f59e0b; }
+  .rs-val.wins    { color: #10b981; }
+  .rs-val.losses  { color: #ef4444; }
+  .rs-val.rate    { color: #60a5fa; }
+  .rs-val.pnl     { color: #a78bfa; }
 
+  .config-btn {
+    flex-shrink: 0; background: none; border: none;
+    color: #64748b; font-size: 18px; cursor: pointer;
+    padding: 4px 8px; border-radius: 6px;
+    transition: color .15s, background .15s;
+    align-self: center; margin-left: 4px;
+  }
+  .config-btn:hover { color: #e2e8f0; background: #2d3148; }
+  .config-btn.active { color: #3b82f6; }
+
+  /* Config panel */
+  .config-panel {
+    border-top: 1px solid #2d3148;
+    padding: 12px 16px;
+    display: flex; gap: 20px; flex-wrap: wrap;
+    background: #13161f;
+  }
+  .config-panel label {
+    display: flex; align-items: center; gap: 8px;
+    cursor: pointer; font-size: 13px; color: #94a3b8;
+    user-select: none;
+  }
+  .config-panel input[type=checkbox] {
+    width: 16px; height: 16px; accent-color: #3b82f6; cursor: pointer;
+  }
+
+  /* Tags */
   .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .tag.engulfing      { background: #1e3a5f; color: #93c5fd; }
   .tag.ob             { background: #2e1a5e; color: #c4b5fd; }
   .tag.live_engulfing { background: #14532d; color: #86efac; }
   .tag.live_ob        { background: #422006; color: #fcd34d; }
 
-  /* Filter indicator */
-  .filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 12px; color: #64748b; }
-  .filter-bar strong { color: #e2e8f0; }
-
   /* Section title */
-  .section-title { font-size: 14px; font-weight: 700; color: #e2e8f0; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .section-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
   .dot.open   { background: #f59e0b; }
   .dot.closed { background: #475569; }
 
   /* Tables */
-  .card { background: #1a1d27; border-radius: 12px; border: 1px solid #2d3148; overflow: hidden; margin-bottom: 20px; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .card { background: #1a1d27; border-radius: 12px; border: 1px solid #2d3148; overflow: hidden; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
   thead tr { background: #13161f; }
-  th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #2d3148; }
-  td { padding: 10px 14px; border-bottom: 1px solid #1f2335; color: #cbd5e1; }
+  th { padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 1px solid #1f2335; color: #cbd5e1; }
   tr:last-child td { border-bottom: none; }
   tr:hover td { background: #1f2335; }
 
@@ -71,85 +100,72 @@
   .pnl-pos   { color: #10b981; font-weight: 600; }
   .pnl-neg   { color: #f87171; font-weight: 600; }
 
-  .empty   { text-align: center; color: #475569; padding: 24px; font-size: 13px; }
-  .loading { text-align: center; color: #475569; padding: 24px; font-size: 13px; }
-  .last-update { font-size: 11px; color: #475569; text-align: center; margin-top: 12px; }
+  .empty   { text-align: center; color: #475569; padding: 20px; font-size: 12px; }
+  .loading { text-align: center; color: #475569; padding: 20px; font-size: 12px; }
+  .last-update { font-size: 11px; color: #475569; text-align: center; margin-top: 8px; }
+
+  /* Mobile: hide less important columns */
+  @media (max-width: 480px) {
+    .col-tp, .col-hora-open { display: none; }
+  }
 </style>
 </head>
 <body>
 
 <header>
   <h1>🤖 Liquidity Sweep Lab</h1>
-  <div style="display:flex;align-items:center;gap:12px">
-    <span id="last-update">—</span>
+  <div class="header-right">
+    <span class="clock" id="last-update">—</span>
     <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
   </div>
 </header>
 
 <div class="container">
 
-  <!-- Stats globales -->
-  <div class="stats">
-    <div class="stat-card open">
-      <div class="label">Abiertas</div>
-      <div class="value" id="s-open">—</div>
+  <!-- Resumen card -->
+  <div class="resumen-card">
+    <div class="resumen-stats">
+      <div class="rs">
+        <span class="rs-label">Abiertas</span>
+        <span class="rs-val open" id="s-open">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Wins</span>
+        <span class="rs-val wins" id="s-wins">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Losses</span>
+        <span class="rs-val losses" id="s-losses">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Win Rate</span>
+        <span class="rs-val rate" id="s-rate">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">PnL</span>
+        <span class="rs-val pnl" id="s-pnl">—</span>
+      </div>
+      <button class="config-btn" id="config-toggle" onclick="toggleConfig()" title="Configurar filtros">⚙</button>
     </div>
-    <div class="stat-card wins">
-      <div class="label">Wins</div>
-      <div class="value" id="s-wins">—</div>
-    </div>
-    <div class="stat-card losses">
-      <div class="label">Losses</div>
-      <div class="value" id="s-losses">—</div>
-    </div>
-    <div class="stat-card rate">
-      <div class="label">Win Rate</div>
-      <div class="value" id="s-rate">—</div>
-    </div>
-    <div class="stat-card pnl">
-      <div class="label">PnL Total</div>
-      <div class="value" id="s-pnl">—</div>
-    </div>
-  </div>
 
-  <!-- Por variante — clickeables como filtro -->
-  <div class="variants">
-    <!-- Fila 1: papers -->
-    <div class="variant-card" onclick="setFilter('engulfing', this)">
-      <h3><span class="tag engulfing">engulfing</span> <small style="color:#64748b;font-size:10px">paper</small></h3>
-      <div class="row"><span>Wins</span><span id="e-wins">—</span></div>
-      <div class="row"><span>Losses</span><span id="e-losses">—</span></div>
-      <div class="row"><span>Win Rate</span><span id="e-rate">—</span></div>
-      <div class="row"><span>PnL</span><span id="e-pnl">—</span></div>
+    <!-- Config panel (oculto por defecto) -->
+    <div class="config-panel" id="config-panel" style="display:none">
+      <label>
+        <input type="checkbox" id="chk-engulfing" checked onchange="applyFilters()">
+        <span class="tag engulfing">engulfing</span>
+        <span style="color:#64748b;font-size:11px">paper</span>
+      </label>
+      <label>
+        <input type="checkbox" id="chk-ob" checked onchange="applyFilters()">
+        <span class="tag ob">order block</span>
+        <span style="color:#64748b;font-size:11px">paper</span>
+      </label>
+      <label>
+        <input type="checkbox" id="chk-live" checked onchange="applyFilters()">
+        <span class="tag live_engulfing">live</span>
+        <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
+      </label>
     </div>
-    <div class="variant-card" onclick="setFilter('ob', this)">
-      <h3><span class="tag ob">order block</span> <small style="color:#64748b;font-size:10px">paper</small></h3>
-      <div class="row"><span>Wins</span><span id="o-wins">—</span></div>
-      <div class="row"><span>Losses</span><span id="o-losses">—</span></div>
-      <div class="row"><span>Win Rate</span><span id="o-rate">—</span></div>
-      <div class="row"><span>PnL</span><span id="o-pnl">—</span></div>
-    </div>
-    <!-- Fila 2: All + live -->
-    <div class="variant-card all-card active-filter" onclick="setFilter(null, this)">
-      <h3>📊 <span style="font-size:13px;color:#94a3b8">All</span></h3>
-      <div class="row"><span>Wins</span><span id="a-wins">—</span></div>
-      <div class="row"><span>Losses</span><span id="a-losses">—</span></div>
-      <div class="row"><span>Win Rate</span><span id="a-rate">—</span></div>
-      <div class="row"><span>PnL</span><span id="a-pnl">—</span></div>
-    </div>
-    <div class="variant-card" onclick="setFilter('live_engulfing', this)">
-      <h3><span class="tag live_engulfing">live engulfing</span> <small style="color:#86efac;font-size:10px;font-weight:600">● real</small></h3>
-      <div class="row"><span>Wins</span><span id="le-wins">—</span></div>
-      <div class="row"><span>Losses</span><span id="le-losses">—</span></div>
-      <div class="row"><span>Win Rate</span><span id="le-rate">—</span></div>
-      <div class="row"><span>PnL</span><span id="le-pnl">—</span></div>
-    </div>
-  </div>
-
-  <!-- Filter bar -->
-  <div class="filter-bar" id="filter-bar" style="display:none">
-    Mostrando: <strong id="filter-label">—</strong>
-    <span style="cursor:pointer;color:#3b82f6" onclick="setFilter(null, document.querySelector('.all-card'))">× limpiar</span>
   </div>
 
   <!-- Posiciones abiertas -->
@@ -157,7 +173,16 @@
   <div class="card">
     <table>
       <thead>
-        <tr><th>Par</th><th>Lado</th><th>Invertido</th><th>Entrada</th><th>SL</th><th>TP</th><th>Variante</th><th>Hora</th></tr>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Invertido</th>
+          <th>Entrada</th>
+          <th>SL</th>
+          <th class="col-tp">TP</th>
+          <th>Variante</th>
+          <th class="col-hora-open">Hora</th>
+        </tr>
       </thead>
       <tbody id="open-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
     </table>
@@ -168,7 +193,16 @@
   <div class="card">
     <table>
       <thead>
-        <tr><th>Par</th><th>Lado</th><th>Resultado</th><th>Invertido</th><th>PnL</th><th>PnL %</th><th>Variante</th><th>Hora UTC</th></tr>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Resultado</th>
+          <th>Invertido</th>
+          <th>PnL</th>
+          <th>PnL %</th>
+          <th>Variante</th>
+          <th>Hora UTC</th>
+        </tr>
       </thead>
       <tbody id="closed-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
     </table>
@@ -182,7 +216,7 @@ const SB_URL = "https://xjznnlzvurfwrhomkxed.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
 
 let allOpen = [], allClosed = [];
-let activeFilter = null;
+let configOpen = false;
 
 async function sbFetch(table, params = "") {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
@@ -192,109 +226,95 @@ async function sbFetch(table, params = "") {
 }
 
 function fmt(n, dec = 4) { return n == null ? "—" : parseFloat(n).toFixed(dec); }
-function winRate(w, l) { const t = w+l; return t ? (w/t*100).toFixed(1)+"%" : "—"; }
+function winRate(w, l) { const t = w + l; return t ? (w / t * 100).toFixed(1) + "%" : "—"; }
 
-function setFilter(variant, card) {
-  document.querySelectorAll(".variant-card").forEach(c => c.classList.remove("active-filter"));
-  card.classList.add("active-filter");
-  activeFilter = variant;
-  const bar = document.getElementById("filter-bar");
-  if (variant) {
-    bar.style.display = "flex";
-    document.getElementById("filter-label").textContent = variant;
-  } else {
-    bar.style.display = "none";
-  }
-  renderTables();
+function toggleConfig() {
+  configOpen = !configOpen;
+  document.getElementById("config-panel").style.display = configOpen ? "flex" : "none";
+  document.getElementById("config-toggle").classList.toggle("active", configOpen);
 }
 
-function renderTables() {
-  const open   = activeFilter ? allOpen.filter(t => t.bot_variant === activeFilter) : allOpen;
-  const closed = activeFilter ? allClosed.filter(t => t.bot_variant === activeFilter) : allClosed;
+function getActiveVariants() {
+  const v = [];
+  if (document.getElementById("chk-engulfing").checked) v.push("engulfing");
+  if (document.getElementById("chk-ob").checked)        v.push("ob");
+  if (document.getElementById("chk-live").checked)      v.push("live_engulfing", "live_ob");
+  return v;
+}
 
-  // Stats globales (siempre del filtro activo)
+function applyFilters() {
+  const active = getActiveVariants();
+  const open   = active.length < 3
+    ? allOpen.filter(t => active.includes(t.bot_variant))
+    : allOpen;
+  const closed = active.length < 3
+    ? allClosed.filter(t => active.includes(t.bot_variant))
+    : allClosed;
+  renderTables(open, closed);
+}
+
+function renderTables(open, closed) {
+  // Stats resumen
   const wins     = closed.filter(t => t.pnl_usdt > 0).length;
   const losses   = closed.filter(t => t.pnl_usdt < 0).length;
-  const totalPnl = closed.reduce((s,t) => s+(t.pnl_usdt||0), 0);
+  const totalPnl = closed.reduce((s, t) => s + (t.pnl_usdt || 0), 0);
   document.getElementById("s-open").textContent   = open.length;
   document.getElementById("s-wins").textContent   = wins;
   document.getElementById("s-losses").textContent = losses;
   document.getElementById("s-rate").textContent   = winRate(wins, losses);
-  document.getElementById("s-pnl").textContent    = (totalPnl>=0?"+":"")+totalPnl.toFixed(2);
+  const pnlEl = document.getElementById("s-pnl");
+  pnlEl.textContent = (totalPnl >= 0 ? "+" : "") + totalPnl.toFixed(2);
 
   // Tabla abiertos
   const ob = document.getElementById("open-body");
-  if (!open.length) {
-    ob.innerHTML = `<tr><td colspan="8" class="empty">Sin posiciones abiertas</td></tr>`;
-  } else {
-    ob.innerHTML = open.map(t => {
-      const inv = (parseFloat(t.amount||0)*parseFloat(t.entry||0));
-      return `<tr>
-        <td><strong>${t.symbol}</strong></td>
-        <td class="side-${t.side==='BUY'?'buy':'sell'}">${t.side}</td>
-        <td>$${inv.toFixed(2)}</td>
-        <td>${fmt(t.entry)}</td><td>${fmt(t.sl)}</td><td>${fmt(t.tp)}</td>
-        <td><span class="tag ${t.bot_variant}">${t.bot_variant||"—"}</span></td>
-        <td>${t.open_time?t.open_time.substring(11,16)+" UTC":"—"}</td>
-      </tr>`;
-    }).join("");
-  }
+  ob.innerHTML = open.length
+    ? open.map(t => {
+        const inv = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
+        return `<tr>
+          <td><strong>${t.symbol}</strong></td>
+          <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+          <td>$${inv.toFixed(2)}</td>
+          <td>${fmt(t.entry)}</td>
+          <td>${fmt(t.sl)}</td>
+          <td class="col-tp">${fmt(t.tp)}</td>
+          <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+          <td class="col-hora-open">${t.open_time ? t.open_time.substring(11, 16) + " UTC" : "—"}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="8" class="empty">Sin posiciones abiertas</td></tr>`;
 
   // Tabla cerrados
   const cb = document.getElementById("closed-body");
-  if (!closed.length) {
-    cb.innerHTML = `<tr><td colspan="8" class="empty">Sin trades cerrados</td></tr>`;
-  } else {
-    cb.innerHTML = closed.map(t => {
-      const pnl    = parseFloat(t.pnl_usdt||0);
-      const inv    = parseFloat(t.amount||0)*parseFloat(t.entry||0);
-      const pct    = inv>0?(pnl/inv*100):0;
-      const cls    = pnl>=0?"pnl-pos":"pnl-neg";
-      const result = t.close_reason==="TP"?"✅ TP":t.close_reason==="SL"?"❌ SL":t.close_reason||"—";
-      return `<tr>
-        <td><strong>${t.symbol}</strong></td>
-        <td class="side-${t.side==='BUY'?'buy':'sell'}">${t.side}</td>
-        <td>${result}</td>
-        <td>$${inv.toFixed(2)}</td>
-        <td class="${cls}">${(pnl>=0?"+":"")+pnl.toFixed(2)}</td>
-        <td class="${cls}">${(pct>=0?"+":"")+pct.toFixed(2)}%</td>
-        <td><span class="tag ${t.bot_variant}">${t.bot_variant||"—"}</span></td>
-        <td>${t.hour_utc!=null?t.hour_utc+":00":"—"}</td>
-      </tr>`;
-    }).join("");
-  }
+  cb.innerHTML = closed.length
+    ? closed.map(t => {
+        const pnl    = parseFloat(t.pnl_usdt || 0);
+        const inv    = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
+        const pct    = inv > 0 ? (pnl / inv * 100) : 0;
+        const cls    = pnl >= 0 ? "pnl-pos" : "pnl-neg";
+        const result = t.close_reason === "TP" ? "✅ TP" : t.close_reason === "SL" ? "❌ SL" : t.close_reason || "—";
+        return `<tr>
+          <td><strong>${t.symbol}</strong></td>
+          <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+          <td>${result}</td>
+          <td>$${inv.toFixed(2)}</td>
+          <td class="${cls}">${(pnl >= 0 ? "+" : "") + pnl.toFixed(2)}</td>
+          <td class="${cls}">${(pct >= 0 ? "+" : "") + pct.toFixed(2)}%</td>
+          <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+          <td>${t.hour_utc != null ? t.hour_utc + ":00" : "—"}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="8" class="empty">Sin trades cerrados</td></tr>`;
 }
 
 async function loadData() {
-  document.getElementById("last-update").textContent = "Actualizando...";
+  document.getElementById("last-update").textContent = "↻";
 
   [allOpen, allClosed] = await Promise.all([
     sbFetch("trades", "status=eq.open&order=open_time.desc"),
     sbFetch("trades", "status=eq.closed&order=close_time.desc&limit=50")
   ]);
 
-  // Cards por variante (siempre sobre datos completos)
-  [["engulfing","e"],["ob","o"],["live_engulfing","le"]].forEach(([v,p]) => {
-    const vt = allClosed.filter(t => t.bot_variant===v);
-    const vw = vt.filter(t=>t.pnl_usdt>0).length;
-    const vl = vt.filter(t=>t.pnl_usdt<0).length;
-    const vp = vt.reduce((s,t)=>s+(t.pnl_usdt||0),0);
-    document.getElementById(`${p}-wins`).textContent   = vw;
-    document.getElementById(`${p}-losses`).textContent = vl;
-    document.getElementById(`${p}-rate`).textContent   = winRate(vw,vl);
-    document.getElementById(`${p}-pnl`).textContent    = (vp>=0?"+":"")+vp.toFixed(2);
-  });
-
-  // Card All
-  const aw = allClosed.filter(t=>t.pnl_usdt>0).length;
-  const al = allClosed.filter(t=>t.pnl_usdt<0).length;
-  const ap = allClosed.reduce((s,t)=>s+(t.pnl_usdt||0),0);
-  document.getElementById("a-wins").textContent   = aw;
-  document.getElementById("a-losses").textContent = al;
-  document.getElementById("a-rate").textContent   = winRate(aw,al);
-  document.getElementById("a-pnl").textContent    = (ap>=0?"+":"")+ap.toFixed(2);
-
-  renderTables();
+  applyFilters();
 
   const now = new Date().toLocaleTimeString("es-AR");
   document.getElementById("last-update").textContent = now;
