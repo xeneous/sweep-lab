@@ -60,10 +60,20 @@
   /* Config panel */
   .config-panel {
     border-top: 1px solid #2d3148;
-    padding: 12px 16px;
-    display: flex; gap: 20px; flex-wrap: wrap;
     background: #13161f;
   }
+  .config-tabs {
+    display: flex; border-bottom: 1px solid #2d3148;
+  }
+  .config-tab {
+    flex: 1; padding: 8px 0; font-size: 12px; font-weight: 600;
+    text-align: center; cursor: pointer; color: #64748b;
+    border: none; background: none; transition: color .15s, border-color .15s;
+    border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .config-tab.active-tab { color: #e2e8f0; border-bottom-color: #3b82f6; }
+  .config-tab-content { display: none; padding: 12px 16px; gap: 20px; flex-wrap: wrap; }
+  .config-tab-content.visible { display: flex; }
   .config-panel label {
     display: flex; align-items: center; gap: 8px;
     cursor: pointer; font-size: 13px; color: #94a3b8;
@@ -80,6 +90,7 @@
   .tag.live_engulfing { background: #14532d; color: #86efac; }
   .tag.live_ob        { background: #422006; color: #fcd34d; }
   .tag.grid           { background: #1a3a3a; color: #2dd4bf; }
+  .tag.oco            { background: #2a1a3a; color: #c084fc; }
 
   /* Section title */
   .section-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -151,26 +162,53 @@
 
     <!-- Config panel (oculto por defecto) -->
     <div class="config-panel" id="config-panel" style="display:none">
-      <label>
-        <input type="checkbox" id="chk-engulfing" checked onchange="applyFilters()">
-        <span class="tag engulfing">engulfing</span>
-        <span style="color:#64748b;font-size:11px">paper</span>
-      </label>
-      <label>
-        <input type="checkbox" id="chk-ob" checked onchange="applyFilters()">
-        <span class="tag ob">order block</span>
-        <span style="color:#64748b;font-size:11px">paper</span>
-      </label>
-      <label>
-        <input type="checkbox" id="chk-live" checked onchange="applyFilters()">
-        <span class="tag live_engulfing">live</span>
-        <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
-      </label>
-      <label>
-        <input type="checkbox" id="chk-grid" checked onchange="applyFilters()">
-        <span class="tag grid">grid</span>
-        <span style="color:#64748b;font-size:11px">spot</span>
-      </label>
+      <div class="config-tabs">
+        <button class="config-tab active-tab" id="tab-sweep" onclick="switchTab('sweep')">Sweep</button>
+        <button class="config-tab" id="tab-grid" onclick="switchTab('grid')">Grid</button>
+      </div>
+
+      <!-- Sweep tab -->
+      <div class="config-tab-content visible" id="content-sweep">
+        <label>
+          <input type="checkbox" id="chk-engulfing" checked onchange="saveAndFilter()">
+          <span class="tag engulfing">engulfing</span>
+          <span style="color:#64748b;font-size:11px">paper</span>
+        </label>
+        <label>
+          <input type="checkbox" id="chk-ob" checked onchange="saveAndFilter()">
+          <span class="tag ob">order block</span>
+          <span style="color:#64748b;font-size:11px">paper</span>
+        </label>
+        <label>
+          <input type="checkbox" id="chk-live" checked onchange="saveAndFilter()">
+          <span class="tag live_engulfing">live</span>
+          <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
+        </label>
+      </div>
+
+      <!-- Grid tab -->
+      <div class="config-tab-content" id="content-grid">
+        <label>
+          <input type="checkbox" id="chk-grid-paper" checked onchange="saveAndFilter()">
+          <span class="tag grid">grid</span>
+          <span style="color:#64748b;font-size:11px">paper</span>
+        </label>
+        <label>
+          <input type="checkbox" id="chk-grid-live" checked onchange="saveAndFilter()">
+          <span class="tag grid">grid</span>
+          <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
+        </label>
+        <label>
+          <input type="checkbox" id="chk-oco-paper" checked onchange="saveAndFilter()">
+          <span class="tag oco">oco</span>
+          <span style="color:#64748b;font-size:11px">paper</span>
+        </label>
+        <label>
+          <input type="checkbox" id="chk-oco-live" checked onchange="saveAndFilter()">
+          <span class="tag oco">oco</span>
+          <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
+        </label>
+      </div>
     </div>
   </div>
 
@@ -233,6 +271,8 @@ function fmtPrice(symbol, n, dec = 4) {
 
 let allOpen = [], allClosed = [];
 let configOpen = false;
+const LS_KEY = "sweeplab_filters";
+const LS_TAB = "sweeplab_tab";
 
 async function sbFetch(table, params = "") {
   const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
@@ -244,30 +284,63 @@ async function sbFetch(table, params = "") {
 function fmt(n, dec = 4) { return n == null ? "—" : parseFloat(n).toFixed(dec); }
 function winRate(w, l) { const t = w + l; return t ? (w / t * 100).toFixed(1) + "%" : "—"; }
 
+// ── localStorage helpers ────────────────────────────────
+const CHK_IDS = ["chk-engulfing", "chk-ob", "chk-live", "chk-grid-paper", "chk-grid-live", "chk-oco-paper", "chk-oco-live"];
+
+function saveFilters() {
+  const state = {};
+  CHK_IDS.forEach(id => { state[id] = document.getElementById(id).checked; });
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadFilters() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const state = JSON.parse(raw);
+    CHK_IDS.forEach(id => {
+      if (id in state) document.getElementById(id).checked = state[id];
+    });
+  } catch(e) {}
+}
+
+function saveAndFilter() { saveFilters(); applyFilters(); }
+
+// ── Tab switching ───────────────────────────────────────
+function switchTab(tab) {
+  ["sweep", "grid"].forEach(t => {
+    document.getElementById("tab-" + t).classList.toggle("active-tab", t === tab);
+    document.getElementById("content-" + t).classList.toggle("visible", t === tab);
+  });
+  try { localStorage.setItem(LS_TAB, tab); } catch(e) {}
+}
+
 function toggleConfig() {
   configOpen = !configOpen;
-  document.getElementById("config-panel").style.display = configOpen ? "flex" : "none";
+  document.getElementById("config-panel").style.display = configOpen ? "block" : "none";
   document.getElementById("config-toggle").classList.toggle("active", configOpen);
 }
 
 function getActiveVariants() {
   const v = [];
-  if (document.getElementById("chk-engulfing").checked) v.push("engulfing");
-  if (document.getElementById("chk-ob").checked)        v.push("ob");
-  if (document.getElementById("chk-live").checked)      v.push("live_engulfing", "live_ob");
-  if (document.getElementById("chk-grid").checked)      v.push("grid");
+  if (document.getElementById("chk-engulfing").checked)   v.push("engulfing");
+  if (document.getElementById("chk-ob").checked)          v.push("ob");
+  if (document.getElementById("chk-live").checked)        v.push("live_engulfing", "live_ob");
+  if (document.getElementById("chk-grid-paper").checked)  v.push("grid");
+  if (document.getElementById("chk-grid-live").checked)   v.push("grid_live");
+  if (document.getElementById("chk-oco-paper").checked)   v.push("oco");
+  if (document.getElementById("chk-oco-live").checked)    v.push("oco_live");
   return v;
 }
 
+// All known bot_variants — used to detect "show all" vs filtered
+const ALL_VARIANTS = ["engulfing", "ob", "live_engulfing", "live_ob", "grid", "grid_live", "oco", "oco_live"];
+
 function applyFilters() {
   const active = getActiveVariants();
-  const totalVariants = 5; // engulfing, ob, live_engulfing, live_ob, grid
-  const open   = active.length < totalVariants
-    ? allOpen.filter(t => active.includes(t.bot_variant))
-    : allOpen;
-  const closed = active.length < totalVariants
-    ? allClosed.filter(t => active.includes(t.bot_variant))
-    : allClosed;
+  const showAll = ALL_VARIANTS.every(v => active.includes(v));
+  const open   = showAll ? allOpen   : allOpen.filter(t => active.includes(t.bot_variant));
+  const closed = showAll ? allClosed : allClosed.filter(t => active.includes(t.bot_variant));
   renderTables(open, closed);
 }
 
@@ -338,6 +411,10 @@ async function loadData() {
   document.getElementById("last-update").textContent = now;
   document.getElementById("footer").textContent = `Última actualización: ${now}`;
 }
+
+// Restore saved state on load
+loadFilters();
+try { const t = localStorage.getItem(LS_TAB); if (t) switchTab(t); } catch(e) {}
 
 loadData();
 setInterval(loadData, 60000);
