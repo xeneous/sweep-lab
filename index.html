@@ -79,6 +79,7 @@
   .tag.ob             { background: #2e1a5e; color: #c4b5fd; }
   .tag.live_engulfing { background: #14532d; color: #86efac; }
   .tag.live_ob        { background: #422006; color: #fcd34d; }
+  .tag.grid           { background: #1a3a3a; color: #2dd4bf; }
 
   /* Section title */
   .section-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -165,6 +166,11 @@
         <span class="tag live_engulfing">live</span>
         <span style="color:#86efac;font-size:11px;font-weight:600">● real</span>
       </label>
+      <label>
+        <input type="checkbox" id="chk-grid" checked onchange="applyFilters()">
+        <span class="tag grid">grid</span>
+        <span style="color:#64748b;font-size:11px">spot</span>
+      </label>
     </div>
   </div>
 
@@ -215,6 +221,16 @@
 const SB_URL = "https://xjznnlzvurfwrhomkxed.supabase.co";
 const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
 
+// Multiplicadores de precio para memecoins (solo display)
+const PRICE_MULT = { "SHIB/USDT": 1000, "PEPE/USDT": 10000 };
+const PRICE_LABEL = { "SHIB/USDT": "×1K", "PEPE/USDT": "×10K" };
+function fmtPrice(symbol, n, dec = 4) {
+  if (n == null) return "—";
+  const m = PRICE_MULT[symbol] || 1;
+  const label = PRICE_LABEL[symbol] ? ` <span style="font-size:10px;color:#64748b">${PRICE_LABEL[symbol]}</span>` : "";
+  return (parseFloat(n) * m).toFixed(dec) + (PRICE_LABEL[symbol] ? "" : "");
+}
+
 let allOpen = [], allClosed = [];
 let configOpen = false;
 
@@ -239,15 +255,17 @@ function getActiveVariants() {
   if (document.getElementById("chk-engulfing").checked) v.push("engulfing");
   if (document.getElementById("chk-ob").checked)        v.push("ob");
   if (document.getElementById("chk-live").checked)      v.push("live_engulfing", "live_ob");
+  if (document.getElementById("chk-grid").checked)      v.push("grid");
   return v;
 }
 
 function applyFilters() {
   const active = getActiveVariants();
-  const open   = active.length < 3
+  const totalVariants = 5; // engulfing, ob, live_engulfing, live_ob, grid
+  const open   = active.length < totalVariants
     ? allOpen.filter(t => active.includes(t.bot_variant))
     : allOpen;
-  const closed = active.length < 3
+  const closed = active.length < totalVariants
     ? allClosed.filter(t => active.includes(t.bot_variant))
     : allClosed;
   renderTables(open, closed);
@@ -274,9 +292,9 @@ function renderTables(open, closed) {
           <td><strong>${t.symbol}</strong></td>
           <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
           <td>$${inv.toFixed(2)}</td>
-          <td>${fmt(t.entry)}</td>
-          <td>${fmt(t.sl)}</td>
-          <td class="col-tp">${fmt(t.tp)}</td>
+          <td>${fmtPrice(t.symbol, t.entry)}${PRICE_LABEL[t.symbol]?` <span style="font-size:10px;color:#64748b">${PRICE_LABEL[t.symbol]}</span>`:''}</td>
+          <td>${fmtPrice(t.symbol, t.sl)}</td>
+          <td class="col-tp">${fmtPrice(t.symbol, t.tp)}</td>
           <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
           <td class="col-hora-open">${t.open_time ? t.open_time.substring(11, 16) + " UTC" : "—"}</td>
         </tr>`;
