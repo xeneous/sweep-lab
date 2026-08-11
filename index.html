@@ -289,7 +289,10 @@ const CHK_IDS = ["chk-engulfing", "chk-ob", "chk-live", "chk-grid-paper", "chk-g
 
 function saveFilters() {
   const state = {};
-  CHK_IDS.forEach(id => { state[id] = document.getElementById(id).checked; });
+  CHK_IDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) state[id] = el.checked;
+  });
   try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch(e) {}
 }
 
@@ -299,7 +302,8 @@ function loadFilters() {
     if (!raw) return;
     const state = JSON.parse(raw);
     CHK_IDS.forEach(id => {
-      if (id in state) document.getElementById(id).checked = state[id];
+      const el = document.getElementById(id);
+      if (el && id in state) el.checked = state[id];  // null guard
     });
   } catch(e) {}
 }
