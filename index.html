@@ -64,6 +64,7 @@
   .filter-btn.f-sweep.active  { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
   .filter-btn.f-grid.active   { background: #1a3a3a; border-color: #2dd4bf; color: #2dd4bf; }
   .filter-btn.f-oco.active    { background: #2a1a3a; border-color: #c084fc; color: #c084fc; }
+  .filter-btn.f-live.active   { background: #14532d; border-color: #86efac; color: #86efac; }
 
   /* Tags */
   .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
@@ -147,6 +148,7 @@
       <button class="filter-btn f-sweep" id="fb-sweep" onclick="setFilter('sweep')">Sweep</button>
       <button class="filter-btn f-grid"  id="fb-grid"  onclick="setFilter('grid')">Grid</button>
       <button class="filter-btn f-oco"   id="fb-oco"   onclick="setFilter('oco')">OCO</button>
+      <button class="filter-btn f-live"  id="fb-live"  onclick="setFilter('live')">● Live</button>
     </div>
   </div>
 
@@ -216,6 +218,7 @@ const FILTER_VARIANTS = {
   sweep: ["engulfing", "ob", "live_engulfing", "live_ob"],
   grid:  ["grid", "grid_live"],
   oco:   ["oco", "oco_live"],
+  live:  ["live_engulfing", "live_ob", "grid_live", "oco_live"],
 };
 
 async function sbFetch(table, params = "") {
@@ -230,7 +233,7 @@ function winRate(w, l) { const t = w + l; return t ? (w / t * 100).toFixed(1) + 
 
 function setFilter(f) {
   activeFilter = f;
-  ["all","sweep","grid","oco"].forEach(k => {
+  ["all","sweep","grid","oco","live"].forEach(k => {
     document.getElementById("fb-" + k).classList.toggle("active", k === f);
   });
   try { localStorage.setItem(LS_FILTER, f); } catch(e) {}
