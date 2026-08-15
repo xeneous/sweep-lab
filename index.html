@@ -73,7 +73,9 @@
   .tag.live_engulfing { background: #14532d; color: #86efac; }
   .tag.live_ob        { background: #422006; color: #fcd34d; }
   .tag.grid           { background: #1a3a3a; color: #2dd4bf; }
+  .tag.grid_live      { background: #0d2626; color: #5eead4; border: 1px solid #2dd4bf; }
   .tag.oco            { background: #2a1a3a; color: #c084fc; }
+  .tag.oco_live       { background: #1a0d2e; color: #d8b4fe; border: 1px solid #a855f7; }
 
   /* Section title */
   .section-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
@@ -285,7 +287,15 @@ function renderTables(open, closed) {
         const inv    = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
         const pct    = inv > 0 ? (pnl / inv * 100) : 0;
         const cls    = pnl >= 0 ? "pnl-pos" : "pnl-neg";
-        const result = t.close_reason === "TP" ? "✅ TP" : t.close_reason === "SL" ? "❌ SL" : t.close_reason || "—";
+        const result = t.close_reason === "TP"               ? "✅ TP"
+                     : t.close_reason === "SL"               ? "❌ SL"
+                     : t.close_reason === "TIMEOUT"          ? "⏱️ TIMEOUT"
+                     : t.close_reason === "VOLATILITY_GUARD" ? "🛡️ VG"
+                     : t.close_reason === "WEAK_ENTRY"       ? "🚪 WEAK"
+                     : t.close_reason === "CLOSED_EXTERNALLY"? "🤚 MANUAL"
+                     : t.close_reason === "STALE_STATE"      ? "⚠️ STALE"
+                     : (t.close_reason||"").includes("ruptura") ? "💥 RUPTURA"
+                     : t.close_reason || "—";
         return `<tr>
           <td><strong>${t.symbol}</strong></td>
           <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
@@ -294,7 +304,7 @@ function renderTables(open, closed) {
           <td class="${cls}">${(pnl >= 0 ? "+" : "") + pnl.toFixed(2)}</td>
           <td class="${cls}">${(pct >= 0 ? "+" : "") + pct.toFixed(2)}%</td>
           <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
-          <td>${t.hour_utc != null ? t.hour_utc + ":00" : "—"}</td>
+          <td>${t.close_time ? t.close_time.substring(11,16) + " UTC" : (t.hour_utc != null ? t.hour_utc + ":00" : "—")}</td>
         </tr>`;
       }).join("")
     : `<tr><td colspan="8" class="empty">Sin trades cerrados</td></tr>`;
