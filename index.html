@@ -789,6 +789,70 @@
     </div>
   </div>
 
+  <!-- ── TRADES RECIENTES ── -->
+  <div class="section-title" data-es="Trades recientes" data-en="Recent trades">Trades recientes</div>
+
+  <!-- Stats resumen de trades -->
+  <div class="strip" id="trades-strip" style="margin-bottom:16px">
+    <div class="strip-item"><span class="strip-label" data-es="Total trades" data-en="Total trades">Total trades</span><span class="strip-value" id="ts-total">—</span></div>
+    <div class="strip-item"><span class="strip-label" data-es="PnL acumulado" data-en="Acc. PnL">PnL acumulado</span><span class="strip-value" id="ts-pnl">—</span></div>
+    <div class="strip-item"><span class="strip-label">Win Rate</span><span class="strip-value" id="ts-wr">—</span></div>
+    <div class="strip-item"><span class="strip-label" data-es="Avg win" data-en="Avg win">Avg win</span><span class="strip-value" id="ts-avgwin" style="color:var(--green)">—</span></div>
+    <div class="strip-item"><span class="strip-label" data-es="Avg loss" data-en="Avg loss">Avg loss</span><span class="strip-value" id="ts-avgloss" style="color:var(--red)">—</span></div>
+    <div class="strip-item"><span class="strip-label" data-es="Mejor día" data-en="Best day">Mejor día</span><span class="strip-value" id="ts-bestday">—</span></div>
+  </div>
+
+  <!-- Stats por día de semana -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+    <div class="card" style="padding:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px" data-es="PnL por día de semana" data-en="PnL by day of week">PnL por día de semana</div>
+      <div id="dow-chart" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+    <div class="card" style="padding:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:12px" data-es="Cierres por razón" data-en="Closes by reason">Cierres por razón</div>
+      <div id="reason-chart" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+
+  <!-- Tabla de trades -->
+  <div class="card" style="padding:0;overflow:hidden;margin-bottom:32px">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-weight:600" data-es="Últimos 50 trades" data-en="Last 50 trades">Últimos 50 trades</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <select id="filter-symbol" onchange="renderTradesTable()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px">
+          <option value="">Todos los pares</option>
+        </select>
+        <select id="filter-reason" onchange="renderTradesTable()" style="background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:12px">
+          <option value="">Todas las razones</option>
+          <option value="TP">TP</option>
+          <option value="SL">SL</option>
+          <option value="WEAK_ENTRY">WEAK_ENTRY</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:var(--bg2);color:var(--text2)">
+            <th style="padding:10px 12px;text-align:left;font-weight:500" data-es="Fecha" data-en="Date">Fecha</th>
+            <th style="padding:10px 12px;text-align:left;font-weight:500">Par</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500">Side</th>
+            <th style="padding:10px 12px;text-align:right;font-weight:500">Entry</th>
+            <th style="padding:10px 12px;text-align:right;font-weight:500">PnL</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500" data-es="Razón" data-en="Reason">Razón</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500" data-es="Sesión" data-en="Session">Sesión</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500">RSI</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500">ADX</th>
+            <th style="padding:10px 12px;text-align:center;font-weight:500" data-es="Score" data-en="Score">Score</th>
+          </tr>
+        </thead>
+        <tbody id="trades-tbody">
+          <tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text2)">Cargando trades...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <!-- ── FOOTER ── -->
@@ -1143,9 +1207,153 @@ function closeModal() {
 }
 
 // ── INIT ──────────────────────────────────────────────────
-buildCards();                   // render demo inmediato
-fetchLiveData();                // primer fetch
-setInterval(fetchLiveData, 60000); // refresh cada 60 segundos
+buildCards();
+fetchLiveData();
+setInterval(fetchLiveData, 60000);
+
+// ── TRADES ─────────────────────────────────────────────────
+let ALL_TRADES = [];
+
+const DOW = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+const REASON_COLOR = { TP:'var(--green)', SL:'var(--red)', WEAK_ENTRY:'var(--yellow)',
+  'ruptura bajista':'var(--red)', 'ruptura alcista':'var(--red)', CLOSED_EXTERNALLY:'var(--text2)' };
+
+async function fetchTrades() {
+  try {
+    const res = await fetch(
+      `${SB_URL}/rest/v1/trades?select=*&order=open_time.desc&limit=200`,
+      { headers: SB_HEADERS }
+    );
+    if (!res.ok) throw new Error(res.status);
+    ALL_TRADES = await res.json();
+    renderTradesStats();
+    renderTradesDOW();
+    renderReasonsChart();
+    renderTradesTable();
+    populateFilters();
+  } catch(e) {
+    document.getElementById('trades-tbody').innerHTML =
+      `<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--red)">Error cargando trades: ${e}</td></tr>`;
+  }
+}
+
+function closedTrades() { return ALL_TRADES.filter(t => t.status === 'closed'); }
+
+function renderTradesStats() {
+  const t = closedTrades();
+  if (!t.length) return;
+  const pnl  = t.reduce((s,r) => s + (r.pnl_usdt||0), 0);
+  const wins  = t.filter(r => (r.pnl_usdt||0) > 0);
+  const loses = t.filter(r => (r.pnl_usdt||0) <= 0);
+  const avgW  = wins.length  ? wins.reduce((s,r)=>s+r.pnl_usdt,0)/wins.length   : 0;
+  const avgL  = loses.length ? loses.reduce((s,r)=>s+r.pnl_usdt,0)/loses.length : 0;
+  const wr    = (wins.length / t.length * 100).toFixed(1);
+
+  // mejor día de semana
+  const byDOW = {};
+  t.forEach(r => {
+    const d = new Date(r.open_time).getDay();
+    byDOW[d] = (byDOW[d]||0) + (r.pnl_usdt||0);
+  });
+  const bestD = Object.entries(byDOW).sort((a,b)=>b[1]-a[1])[0];
+
+  document.getElementById('ts-total').textContent  = t.length;
+  document.getElementById('ts-pnl').textContent    = `${pnl>=0?'+':''}$${pnl.toFixed(2)}`;
+  document.getElementById('ts-pnl').style.color    = pnl>=0?'var(--green)':'var(--red)';
+  document.getElementById('ts-wr').textContent     = `${wr}%`;
+  document.getElementById('ts-wr').style.color     = parseFloat(wr)>25?'var(--green)':'var(--yellow)';
+  document.getElementById('ts-avgwin').textContent = `+$${avgW.toFixed(3)}`;
+  document.getElementById('ts-avgloss').textContent= `$${avgL.toFixed(3)}`;
+  document.getElementById('ts-bestday').textContent= bestD ? `${DOW[bestD[0]]} (+$${bestD[1].toFixed(2)})` : '—';
+}
+
+function renderTradesDOW() {
+  const t = closedTrades();
+  const byDOW = {};
+  const cntDOW = {};
+  t.forEach(r => {
+    const d = new Date(r.open_time).getDay();
+    byDOW[d]  = (byDOW[d]||0)  + (r.pnl_usdt||0);
+    cntDOW[d] = (cntDOW[d]||0) + 1;
+  });
+  const maxAbs = Math.max(...Object.values(byDOW).map(Math.abs), 0.01);
+  const el = document.getElementById('dow-chart');
+  el.innerHTML = [1,2,3,4,5,6,0].map(d => {
+    const pnl = byDOW[d]||0;
+    const cnt = cntDOW[d]||0;
+    const pct = Math.abs(pnl)/maxAbs*100;
+    const col = pnl>0?'var(--green)':'var(--red)';
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+      <span style="width:28px;color:var(--text2)">${DOW[d]}</span>
+      <div style="flex:1;background:var(--bg2);border-radius:4px;height:10px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${col};border-radius:4px"></div>
+      </div>
+      <span style="width:70px;text-align:right;color:${col}">${pnl>=0?'+':''}$${pnl.toFixed(2)} <span style="color:var(--text3)">(${cnt})</span></span>
+    </div>`;
+  }).join('');
+}
+
+function renderReasonsChart() {
+  const t = closedTrades();
+  const byReason = {};
+  t.forEach(r => { const k = r.close_reason||'?'; byReason[k] = (byReason[k]||{trades:0,pnl:0}); byReason[k].trades++; byReason[k].pnl += r.pnl_usdt||0; });
+  const el = document.getElementById('reason-chart');
+  el.innerHTML = Object.entries(byReason).sort((a,b)=>b[1].trades-a[1].trades).map(([k,v]) => {
+    const pct = v.trades/t.length*100;
+    const col = REASON_COLOR[k]||'var(--blue)';
+    return `<div style="display:flex;align-items:center;gap:8px;font-size:12px">
+      <span style="width:90px;color:${col};font-size:11px">${k}</span>
+      <div style="flex:1;background:var(--bg2);border-radius:4px;height:10px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${col};opacity:0.7;border-radius:4px"></div>
+      </div>
+      <span style="width:80px;text-align:right;color:var(--text2)">${v.trades} · ${v.pnl>=0?'+':''}$${v.pnl.toFixed(2)}</span>
+    </div>`;
+  }).join('');
+}
+
+function populateFilters() {
+  const syms = [...new Set(ALL_TRADES.map(t=>t.symbol))].sort();
+  const sel = document.getElementById('filter-symbol');
+  sel.innerHTML = '<option value="">Todos los pares</option>' +
+    syms.map(s=>`<option value="${s}">${s}</option>`).join('');
+}
+
+function renderTradesTable() {
+  const sym = document.getElementById('filter-symbol').value;
+  const rsn = document.getElementById('filter-reason').value;
+  let rows = closedTrades();
+  if (sym) rows = rows.filter(t => t.symbol === sym);
+  if (rsn) rows = rows.filter(t => t.close_reason === rsn);
+  rows = rows.slice(0, 50);
+
+  const tbody = document.getElementById('trades-tbody');
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;color:var(--text2)">Sin trades todavía</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(t => {
+    const pnl  = t.pnl_usdt||0;
+    const pnlC = pnl>0?'var(--green)':pnl<0?'var(--red)':'var(--text2)';
+    const sideC= t.side==='BUY'?'var(--green)':'var(--red)';
+    const dt   = t.open_time ? new Date(t.open_time).toLocaleString('es-AR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—';
+    const rsnC = REASON_COLOR[t.close_reason]||'var(--text2)';
+    return `<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:9px 12px;color:var(--text2)">${dt}</td>
+      <td style="padding:9px 12px;font-weight:600">${t.symbol||'—'}</td>
+      <td style="padding:9px 12px;text-align:center;color:${sideC};font-weight:600">${t.side||'—'}</td>
+      <td style="padding:9px 12px;text-align:right;font-family:monospace">${t.entry?parseFloat(t.entry).toFixed(4):'—'}</td>
+      <td style="padding:9px 12px;text-align:right;color:${pnlC};font-weight:600;font-family:monospace">${pnl>=0?'+':''}$${pnl.toFixed(4)}</td>
+      <td style="padding:9px 12px;text-align:center;color:${rsnC};font-size:11px">${t.close_reason||'open'}</td>
+      <td style="padding:9px 12px;text-align:center;color:var(--text2);font-size:11px">${t.session||'—'}</td>
+      <td style="padding:9px 12px;text-align:center;color:var(--text2)">${t.rsi_at_entry!=null?parseFloat(t.rsi_at_entry).toFixed(1):'—'}</td>
+      <td style="padding:9px 12px;text-align:center;color:var(--text2)">${t.adx_at_entry!=null?parseFloat(t.adx_at_entry).toFixed(1):'—'}</td>
+      <td style="padding:9px 12px;text-align:center;color:var(--text2)">${t.entry_score!=null?t.entry_score:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+fetchTrades();
+setInterval(fetchTrades, 60000);
 </script>
 </body>
 </html>
