@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Liquidity Sweep Lab</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+
+  header {
+    background: #1a1d27; color: #fff; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid #2d3148; position: sticky; top: 0; z-index: 10;
+  }
+  header h1 { font-size: 16px; font-weight: 700; }
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  .clock { font-size: 12px; color: #64748b; }
+  .refresh-btn { background: #3b82f6; color: #fff; border: none; border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; }
+  .refresh-btn:hover { background: #2563eb; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 14px 12px; }
+
+  /* ── Resumen card ── */
+  .resumen-card {
+    background: #1a1d27; border-radius: 12px;
+    border: 1px solid #2d3148; margin-bottom: 12px;
+    overflow: hidden;
+  }
+  .resumen-stats {
+    display: flex; align-items: stretch;
+    padding: 10px 12px; gap: 0;
+  }
+  .rs {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 4px 6px;
+    border-right: 1px solid #2d3148;
+  }
+  .rs:last-of-type { border-right: none; }
+  .rs-label { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 3px; white-space: nowrap; }
+  .rs-val   { font-size: 20px; font-weight: 700; line-height: 1; }
+  .rs-val.open    { color: #f59e0b; }
+  .rs-val.wins    { color: #10b981; }
+  .rs-val.losses  { color: #ef4444; }
+  .rs-val.rate    { color: #60a5fa; }
+  .rs-val.pnl     { color: #a78bfa; }
+
+  /* Filter buttons */
+  .filter-bar {
+    border-top: 1px solid #2d3148;
+    background: #13161f;
+    padding: 8px 12px;
+    display: flex; gap: 6px;
+  }
+  .filter-btn {
+    padding: 4px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    border: 1px solid #2d3148; background: none; color: #64748b;
+    cursor: pointer; transition: all .15s;
+  }
+  .filter-btn:hover { border-color: #475569; color: #94a3b8; }
+  .filter-btn.active { background: #3b82f6; border-color: #3b82f6; color: #fff; }
+  .filter-btn.f-sweep.active  { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+  .filter-btn.f-grid.active   { background: #1a3a3a; border-color: #2dd4bf; color: #2dd4bf; }
+  .filter-btn.f-oco.active    { background: #2a1a3a; border-color: #c084fc; color: #c084fc; }
+  .filter-btn.f-live.active   { background: #14532d; border-color: #86efac; color: #86efac; }
+
+  /* Tags */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .tag.engulfing      { background: #1e3a5f; color: #93c5fd; }
+  .tag.ob             { background: #2e1a5e; color: #c4b5fd; }
+  .tag.live_engulfing { background: #14532d; color: #86efac; }
+  .tag.live_ob        { background: #422006; color: #fcd34d; }
+  .tag.grid           { background: #1a3a3a; color: #2dd4bf; }
+  .tag.grid_live      { background: #0d2626; color: #5eead4; border: 1px solid #2dd4bf; }
+  .tag.oco            { background: #2a1a3a; color: #c084fc; }
+  .tag.oco_live       { background: #1a0d2e; color: #d8b4fe; border: 1px solid #a855f7; }
+
+  /* Section title */
+  .section-title { font-size: 13px; font-weight: 700; color: #e2e8f0; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot.open   { background: #f59e0b; }
+  .dot.closed { background: #475569; }
+
+  /* Tables */
+  .card { background: #1a1d27; border-radius: 12px; border: 1px solid #2d3148; overflow: hidden; margin-bottom: 16px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead tr { background: #13161f; }
+  th { padding: 8px 10px; text-align: left; font-size: 10px; font-weight: 600; color: #475569; text-transform: uppercase; letter-spacing: 0.4px; border-bottom: 1px solid #2d3148; white-space: nowrap; }
+  td { padding: 9px 10px; border-bottom: 1px solid #1f2335; color: #cbd5e1; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #1f2335; }
+
+  .side-buy  { color: #10b981; font-weight: 700; }
+  .side-sell { color: #f87171; font-weight: 700; }
+  .pnl-pos   { color: #10b981; font-weight: 600; }
+  .pnl-neg   { color: #f87171; font-weight: 600; }
+
+  .empty   { text-align: center; color: #475569; padding: 20px; font-size: 12px; }
+  .loading { text-align: center; color: #475569; padding: 20px; font-size: 12px; }
+  .last-update { font-size: 11px; color: #475569; text-align: center; margin-top: 8px; }
+
+  /* Mobile: hide less important columns */
+  @media (max-width: 480px) {
+    .col-tp, .col-hora-open { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🤖 Liquidity Sweep Lab</h1>
+  <div class="header-right">
+    <span class="clock" id="last-update">—</span>
+    <button class="refresh-btn" onclick="loadData()">↻ Refresh</button>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Resumen card -->
+  <div class="resumen-card">
+    <div class="resumen-stats">
+      <div class="rs">
+        <span class="rs-label">Abiertas</span>
+        <span class="rs-val open" id="s-open">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Wins</span>
+        <span class="rs-val wins" id="s-wins">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Losses</span>
+        <span class="rs-val losses" id="s-losses">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">Win Rate</span>
+        <span class="rs-val rate" id="s-rate">—</span>
+      </div>
+      <div class="rs">
+        <span class="rs-label">PnL</span>
+        <span class="rs-val pnl" id="s-pnl">—</span>
+      </div>
+    </div>
+
+    <!-- Filter buttons — siempre visibles -->
+    <div class="filter-bar">
+      <button class="filter-btn active" id="fb-all"   onclick="setFilter('all')">Todos</button>
+      <button class="filter-btn f-sweep" id="fb-sweep" onclick="setFilter('sweep')">Sweep</button>
+      <button class="filter-btn f-grid"  id="fb-grid"  onclick="setFilter('grid')">Grid</button>
+      <button class="filter-btn f-oco"   id="fb-oco"   onclick="setFilter('oco')">OCO</button>
+      <button class="filter-btn f-live"  id="fb-live"  onclick="setFilter('live')">● Live</button>
+    </div>
+  </div>
+
+  <!-- Posiciones abiertas -->
+  <div class="section-title"><span class="dot open"></span> Posiciones Abiertas</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Invertido</th>
+          <th>Entrada</th>
+          <th>SL</th>
+          <th class="col-tp">TP</th>
+          <th>Variante</th>
+          <th class="col-hora-open">Hora</th>
+        </tr>
+      </thead>
+      <tbody id="open-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+
+  <!-- Últimos trades cerrados -->
+  <div class="section-title"><span class="dot closed"></span> Últimos Trades Cerrados</div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>Par</th>
+          <th>Lado</th>
+          <th>Resultado</th>
+          <th>Invertido</th>
+          <th>PnL</th>
+          <th>PnL %</th>
+          <th>Variante</th>
+          <th>Hora UTC</th>
+        </tr>
+      </thead>
+      <tbody id="closed-body"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+    </table>
+  </div>
+
+  <div class="last-update" id="footer">—</div>
+</div>
+
+<script>
+const SB_URL = "https://xjznnlzvurfwrhomkxed.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
+
+// Multiplicadores de precio para memecoins (solo display)
+const PRICE_MULT = { "SHIB/USDT": 1000, "PEPE/USDT": 10000 };
+const PRICE_LABEL = { "SHIB/USDT": "×1K", "PEPE/USDT": "×10K" };
+function fmtPrice(symbol, n, dec = 4) {
+  if (n == null) return "—";
+  const m = PRICE_MULT[symbol] || 1;
+  const label = PRICE_LABEL[symbol] ? ` <span style="font-size:10px;color:#64748b">${PRICE_LABEL[symbol]}</span>` : "";
+  return (parseFloat(n) * m).toFixed(dec) + (PRICE_LABEL[symbol] ? "" : "");
+}
+
+let allOpen = [], allClosed = [];
+let activeFilter = "all";
+const LS_FILTER = "sweeplab_filter";
+
+const FILTER_VARIANTS = {
+  all:   null,
+  sweep: ["engulfing", "ob", "live_engulfing", "live_ob"],
+  grid:  ["grid", "grid_live"],
+  oco:   ["oco", "oco_live"],
+  live:  ["live_engulfing", "live_ob", "grid_live", "oco_live"],
+};
+
+async function sbFetch(table, params = "") {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${params}`, {
+    headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` }
+  });
+  return r.json();
+}
+
+function fmt(n, dec = 4) { return n == null ? "—" : parseFloat(n).toFixed(dec); }
+function winRate(w, l) { const t = w + l; return t ? (w / t * 100).toFixed(1) + "%" : "—"; }
+
+function setFilter(f) {
+  activeFilter = f;
+  ["all","sweep","grid","oco","live"].forEach(k => {
+    document.getElementById("fb-" + k).classList.toggle("active", k === f);
+  });
+  try { localStorage.setItem(LS_FILTER, f); } catch(e) {}
+  applyFilters();
+}
+
+function applyFilters() {
+  const variants = FILTER_VARIANTS[activeFilter];
+  const open   = variants ? allOpen.filter(t   => variants.includes(t.bot_variant)) : allOpen;
+  const closed = variants ? allClosed.filter(t => variants.includes(t.bot_variant)) : allClosed;
+  renderTables(open, closed);
+}
+
+function renderTables(open, closed) {
+  // Stats resumen
+  const wins     = closed.filter(t => t.pnl_usdt > 0).length;
+  const losses   = closed.filter(t => t.pnl_usdt < 0).length;
+  const totalPnl = closed.reduce((s, t) => s + (t.pnl_usdt || 0), 0);
+  document.getElementById("s-open").textContent   = open.length;
+  document.getElementById("s-wins").textContent   = wins;
+  document.getElementById("s-losses").textContent = losses;
+  document.getElementById("s-rate").textContent   = winRate(wins, losses);
+  const pnlEl = document.getElementById("s-pnl");
+  pnlEl.textContent = (totalPnl >= 0 ? "+" : "") + totalPnl.toFixed(2);
+
+  // Tabla abiertos
+  const ob = document.getElementById("open-body");
+  ob.innerHTML = open.length
+    ? open.map(t => {
+        const inv = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
+        return `<tr>
+          <td><strong>${t.symbol}</strong></td>
+          <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+          <td>$${inv.toFixed(2)}</td>
+          <td>${fmtPrice(t.symbol, t.entry)}${PRICE_LABEL[t.symbol]?` <span style="font-size:10px;color:#64748b">${PRICE_LABEL[t.symbol]}</span>`:''}</td>
+          <td>${fmtPrice(t.symbol, t.sl)}</td>
+          <td class="col-tp">${fmtPrice(t.symbol, t.tp)}</td>
+          <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+          <td class="col-hora-open">${t.open_time ? t.open_time.substring(11, 16) + " UTC" : "—"}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="8" class="empty">Sin posiciones abiertas</td></tr>`;
+
+  // Tabla cerrados
+  const cb = document.getElementById("closed-body");
+  cb.innerHTML = closed.length
+    ? closed.map(t => {
+        const pnl    = parseFloat(t.pnl_usdt || 0);
+        const inv    = parseFloat(t.amount || 0) * parseFloat(t.entry || 0);
+        const pct    = inv > 0 ? (pnl / inv * 100) : 0;
+        const cls    = pnl >= 0 ? "pnl-pos" : "pnl-neg";
+        const result = t.close_reason === "TP"               ? "✅ TP"
+                     : t.close_reason === "SL"               ? "❌ SL"
+                     : t.close_reason === "TIMEOUT"          ? "⏱️ TIMEOUT"
+                     : t.close_reason === "VOLATILITY_GUARD" ? "🛡️ VG"
+                     : t.close_reason === "WEAK_ENTRY"       ? "🚪 WEAK"
+                     : t.close_reason === "CLOSED_EXTERNALLY"? "🤚 MANUAL"
+                     : t.close_reason === "STALE_STATE"      ? "⚠️ STALE"
+                     : (t.close_reason||"").includes("ruptura") ? "💥 RUPTURA"
+                     : t.close_reason || "—";
+        return `<tr>
+          <td><strong>${t.symbol}</strong></td>
+          <td class="side-${t.side === 'BUY' ? 'buy' : 'sell'}">${t.side}</td>
+          <td>${result}</td>
+          <td>$${inv.toFixed(2)}</td>
+          <td class="${cls}">${(pnl >= 0 ? "+" : "") + pnl.toFixed(2)}</td>
+          <td class="${cls}">${(pct >= 0 ? "+" : "") + pct.toFixed(2)}%</td>
+          <td><span class="tag ${t.bot_variant}">${t.bot_variant || "—"}</span></td>
+          <td>${t.close_time ? t.close_time.substring(11,16) + " UTC" : (t.hour_utc != null ? t.hour_utc + ":00" : "—")}</td>
+        </tr>`;
+      }).join("")
+    : `<tr><td colspan="8" class="empty">Sin trades cerrados</td></tr>`;
+}
+
+async function loadData() {
+  document.getElementById("last-update").textContent = "↻";
+
+  [allOpen, allClosed] = await Promise.all([
+    sbFetch("trades", "status=eq.open&order=open_time.desc"),
+    sbFetch("trades", "status=eq.closed&order=close_time.desc&limit=50")
+  ]);
+
+  applyFilters();
+
+  const now = new Date().toLocaleTimeString("es-AR");
+  document.getElementById("last-update").textContent = now;
+  document.getElementById("footer").textContent = `Última actualización: ${now}`;
+}
+
+// Restore saved filter on load
+try { const f = localStorage.getItem(LS_FILTER); if (f) setFilter(f); } catch(e) {}
+
+loadData();
+setInterval(loadData, 60000);
+</script>
+</body>
+</html>
