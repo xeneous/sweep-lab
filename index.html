@@ -2,478 +2,946 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>OCO Dashboard — Supabase</title>
+<title>OCO · Banco de Pruebas</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e0e0e0; font-size: 13px; }
-  h1 { padding: 14px 20px; font-size: 17px; color: #fff; border-bottom: 1px solid #2a2a3a; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-  h1 span { font-size: 11px; color: #666; font-weight: normal; }
-  .layout { display: flex; height: calc(100vh - 47px); }
-  .sidebar { width: 220px; min-width: 220px; padding: 14px; border-right: 1px solid #2a2a3a; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; }
-  .main { flex: 1; padding: 14px; overflow: auto; }
-  .section-title { font-size: 10px; text-transform: uppercase; color: #777; letter-spacing: 0.08em; margin-bottom: 7px; }
-  label { display: flex; align-items: center; gap: 6px; padding: 2px 0; cursor: pointer; font-size: 12px; }
-  label:hover { color: #fff; }
-  input[type=checkbox] { accent-color: #7c6af7; width: 13px; height: 13px; }
-  input[type=date], input[type=text], select {
-    background: #1a1a2e; border: 1px solid #2a2a3a; color: #ccc;
-    padding: 5px 8px; border-radius: 4px; font-size: 11px; width: 100%;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .family-header { display: flex; align-items: center; gap: 6px; padding: 3px 0; font-weight: 600; font-size: 12px; }
-  .family-pairs { padding-left: 18px; }
-  .btn { background: #7c6af7; border: none; color: #fff; padding: 7px 14px; border-radius: 5px; cursor: pointer; font-size: 12px; width: 100%; }
-  .btn:hover { background: #6a59e0; }
-  .btn-sm { background: #2a2a3a; border: none; color: #888; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; }
-  .btn-sm:hover { color: #ccc; }
-  .status { font-size: 11px; color: #555; padding: 4px 0; }
-  .status.ok { color: #4ade80; }
-  .status.err { color: #f87171; }
-  .status.loading { color: #60a5fa; }
-  .tabs { display: flex; gap: 2px; margin-bottom: 14px; flex-wrap: wrap; }
-  .tab { padding: 5px 13px; border-radius: 4px; cursor: pointer; font-size: 12px; color: #888; }
-  .tab.active { background: #2a2a4a; color: #a78bfa; }
-  .tab:hover:not(.active) { background: #1e1e2e; color: #ccc; }
-  .kpi-row { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-  .kpi { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 7px; padding: 11px 15px; min-width: 110px; }
-  .kpi-val { font-size: 20px; font-weight: 700; }
-  .kpi-lbl { font-size: 10px; color: #888; margin-top: 2px; }
-  .green { color: #4ade80; } .red { color: #f87171; } .blue { color: #60a5fa; } .purple { color: #a78bfa; } .orange { color: #fb923c; }
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { text-align: left; padding: 5px 9px; color: #777; font-weight: 500; border-bottom: 1px solid #2a2a3a; white-space: nowrap; }
-  td { padding: 5px 9px; border-bottom: 1px solid #1a1a2a; white-space: nowrap; }
-  tr:hover td { background: #1a1a2e; }
-  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; font-weight: 600; }
-  .badge-prod { background: #1a3a2a; color: #4ade80; }
-  .badge-lab1 { background: #1a2a3a; color: #60a5fa; }
-  .badge-meme { background: #2a1a3a; color: #c084fc; }
-  .badge-lab2 { background: #3a2a1a; color: #fb923c; }
-  .charts-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px; }
-  .chart-box { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 8px; padding: 14px; }
-  .chart-box canvas { max-height: 220px; }
-  .rank-table { display: flex; flex-direction: column; gap: 4px; max-width: 460px; }
-  .rank-row { display: flex; align-items: center; gap: 8px; padding: 5px 9px; background: #1a1a2e; border-radius: 5px; }
-  .rank-num { width: 18px; color: #666; font-size: 10px; }
-  .rank-sym { width: 80px; font-weight: 600; font-size: 12px; }
-  .rank-bar-wrap { flex: 1; height: 7px; background: #2a2a3a; border-radius: 4px; overflow: hidden; }
-  .rank-bar { height: 100%; border-radius: 4px; }
-  .rank-val { width: 65px; text-align: right; font-size: 11px; }
-  .no-data { text-align: center; color: #444; padding: 50px; font-size: 14px; }
-  .conn-block input { margin-bottom: 6px; }
-  .conn-block label { font-size: 11px; color: #888; margin-bottom: 3px; display: block; }
+:root {
+  --bg:      #0c0d12;
+  --bg2:     #13141c;
+  --bg3:     #1a1b26;
+  --border:  #1e2030;
+  --text:    #cdd6f4;
+  --muted:   #6c7086;
+  --green:   #a6e3a1;
+  --red:     #f38ba8;
+  --yellow:  #f9e2af;
+  --blue:    #89b4fa;
+  --purple:  #cba6f7;
+  --orange:  #fab387;
+  --teal:    #94e2d5;
+  --accent:  #cba6f7;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:13px;overflow:hidden;height:100vh;display:flex;flex-direction:column}
+
+/* ── Header ── */
+.hdr{display:flex;align-items:center;gap:10px;padding:8px 16px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap}
+.hdr-title{font-size:14px;font-weight:700;color:#fff;white-space:nowrap}
+.hdr-sep{color:var(--border);padding:0 2px}
+.hdr input[type=text],.hdr input[type=number],.hdr select{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:5px;font-size:11px}
+.hdr input[type=number]{width:68px}
+.hdr input[type=text]{width:90px}
+.hdr label{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.btn{background:var(--bg3);border:1px solid var(--border);color:var(--accent);padding:5px 12px;border-radius:5px;cursor:pointer;font-size:11px;white-space:nowrap}
+.btn:hover{background:var(--border)}
+.status{font-size:11px;color:var(--muted);white-space:nowrap}
+.status.ok{color:var(--green)} .status.err{color:var(--red)} .status.load{color:var(--blue);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── Layout ── */
+.body{display:flex;flex:1;overflow:hidden}
+.sidebar{width:195px;min-width:195px;background:var(--bg2);border-right:1px solid var(--border);padding:12px 10px;overflow-y:auto;display:flex;flex-direction:column;gap:14px;flex-shrink:0}
+.main{flex:1;overflow:auto;padding:14px}
+.sec-title{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.09em;margin-bottom:7px;display:flex;align-items:center;justify-content:space-between}
+.sec-title button{background:none;border:none;color:var(--muted);font-size:9px;cursor:pointer;padding:0}
+.sec-title button:hover{color:var(--text)}
+
+/* ── Filter labels ── */
+label{display:flex;align-items:center;gap:5px;padding:2px 0;cursor:pointer;font-size:11px}
+label:hover{color:#fff}
+input[type=checkbox]{accent-color:var(--accent);width:12px;height:12px;flex-shrink:0}
+input[type=date]{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:11px;width:100%}
+.fam-hdr{display:flex;align-items:center;gap:5px;font-weight:700;font-size:11px;padding:3px 0;cursor:pointer}
+.fam-pairs{padding-left:15px}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.variant-row{display:flex;align-items:center;gap:6px;padding:3px 0}
+.variant-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:1px;margin-bottom:14px;background:var(--bg2);border-radius:6px;padding:3px;width:fit-content}
+.tab{padding:5px 14px;border-radius:4px;cursor:pointer;font-size:12px;color:var(--muted);white-space:nowrap}
+.tab.active{background:var(--bg3);color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
+
+/* ── Gauges ── */
+.gauges-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-start}
+.gauge-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;display:flex;flex-direction:column;align-items:center;min-width:190px}
+.gauge-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px}
+.gauge-svg{width:160px;height:90px}
+.gauge-val{font-size:24px;font-weight:800;margin-top:4px;letter-spacing:-0.5px}
+.gauge-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* ── KPI strip ── */
+.kpi-strip{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;min-width:100px}
+.kpi-val{font-size:18px;font-weight:700}
+.kpi-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.kpi-delta{font-size:10px;margin-top:1px}
+
+/* ── Pair cards ── */
+.pair-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;margin-bottom:7px;overflow:hidden}
+.pair-card-hdr{display:flex;align-items:center;gap:10px;padding:10px 13px;cursor:pointer}
+.pair-card-hdr:hover{background:var(--bg3)}
+.pc-sym{font-weight:800;font-size:14px;width:56px;flex-shrink:0}
+.pc-badge{display:inline-block;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.05em;flex-shrink:0}
+.pc-variant{font-size:10px;color:var(--muted);flex-shrink:0}
+.pc-meta{flex:1;display:flex;gap:14px;font-size:11px;color:var(--muted)}
+.pc-meta b{color:var(--text)}
+.pc-pnl{font-size:16px;font-weight:800;margin-left:auto;flex-shrink:0}
+.pc-wr{font-size:10px;color:var(--muted);width:45px;text-align:right;flex-shrink:0}
+.pc-chevron{font-size:11px;color:var(--muted);flex-shrink:0;margin-left:4px}
+.pair-body{display:none;padding:0 13px 10px}
+.pair-body.open{display:block}
+.pair-body table{font-size:11px;width:100%;border-collapse:collapse;margin-top:4px}
+.pair-body th{color:var(--muted);padding:3px 6px;border-bottom:1px solid var(--border);text-align:left;font-weight:500}
+.pair-body td{padding:3px 6px;border-bottom:1px solid #0f1020}
+
+/* ── Tables ── */
+table.data{width:100%;border-collapse:collapse;font-size:12px}
+table.data th{text-align:left;padding:5px 9px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;cursor:pointer}
+table.data th:hover{color:var(--text)}
+table.data td{padding:5px 9px;border-bottom:1px solid #10111a;white-space:nowrap}
+table.data tr:hover td{background:var(--bg2)}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700}
+.b-prod{background:#1a3a2a;color:var(--green)}
+.b-lab1{background:#1a2a3a;color:var(--blue)}
+.b-meme{background:#2a1a3a;color:var(--purple)}
+.b-lab2{background:#3a2a1a;color:var(--orange)}
+.b-sweep{background:#2a2a1a;color:var(--yellow)}
+.b-trend{background:#1a2a2a;color:var(--teal)}
+
+/* ── Rank bars ── */
+.rank-table{display:flex;flex-direction:column;gap:3px;max-width:460px}
+.rank-row{display:flex;align-items:center;gap:8px;padding:5px 9px;background:var(--bg2);border-radius:5px}
+.rank-num{width:18px;color:var(--muted);font-size:10px}
+.rank-sym{width:72px;font-weight:700;font-size:12px}
+.rank-bar-bg{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+.rank-bar{height:100%;border-radius:3px}
+.rank-val{width:60px;text-align:right;font-size:11px}
+
+/* ── Risk table ── */
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:14px}
+.risk-card{background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:12px 14px}
+.risk-card-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px}
+.risk-card-val{font-size:20px;font-weight:700}
+.risk-card-sub{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* ── Heatmap ── */
+.heatmap-wrap{overflow-x:auto}
+.heatmap{display:grid;grid-template-columns:60px repeat(24,1fr);gap:2px;font-size:10px;min-width:700px}
+.hm-cell{padding:5px 3px;border-radius:3px;text-align:center;cursor:default}
+.hm-label{display:flex;align-items:center;color:var(--muted);font-size:10px}
+
+/* ── Util ── */
+.green{color:var(--green)} .red{color:var(--red)} .yellow{color:var(--yellow)}
+.blue{color:var(--blue)} .muted{color:var(--muted)}
+.no-data{text-align:center;color:var(--border);padding:60px;font-size:15px}
+.charts-row{display:flex;gap:16px;flex-wrap:wrap;margin-top:16px}
+.chart-box{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px}
+.search-bar{background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:5px;font-size:12px;width:280px;margin-bottom:10px}
+.search-bar::placeholder{color:var(--muted)}
 </style>
 </head>
 <body>
 
-<h1>📊 OCO Dashboard <span id="hdr-info">— conectá Supabase para cargar datos</span></h1>
+<!-- ── HEADER ─────────────────────────────────────────────────── -->
+<div class="hdr">
+  <span class="hdr-title">⚡ OCO · Banco de Pruebas</span>
+  <span class="hdr-sep">|</span>
+  <label>Tabla <input type="text" id="sb-table" value="trades"></label>
+  <label>Capital <input type="number" id="base-cap" value="200" step="10"> $</label>
+  <button class="btn" onclick="fetchData()">🔄 Recargar</button>
+  <span class="status" id="sb-status">iniciando…</span>
+  <span class="hdr-sep" style="margin-left:auto">|</span>
+  <label style="font-size:10px;color:var(--muted)" id="last-update"></label>
+</div>
 
-<div class="layout">
+<!-- ── LAYOUT ─────────────────────────────────────────────────── -->
+<div class="body">
+
+<!-- SIDEBAR -->
 <div class="sidebar">
 
-  <div class="conn-block">
-    <div class="section-title">Conexión Supabase</div>
-    <label>Tabla</label>
-    <input type="text" id="sb-table" value="trades" placeholder="nombre_tabla">
-    <label style="margin-top:6px">Límite de filas</label>
-    <select id="sb-limit">
-      <option value="1000">1 000</option>
-      <option value="5000" selected>5 000</option>
-      <option value="10000">10 000</option>
-      <option value="50000">50 000</option>
-    </select>
-    <button class="btn" style="margin-top:8px" onclick="fetchData()">🔄 Cargar datos</button>
-    <div class="status" id="sb-status">listo</div>
+  <div>
+    <div class="sec-title">Variante bot <button onclick="selectAllVariants()">todos</button></div>
+    <div id="variant-filters"></div>
   </div>
 
   <div>
-    <div class="section-title">Fechas</div>
-    <input type="date" id="date-from" onchange="render()" style="margin-bottom:5px">
-    <input type="date" id="date-to" onchange="render()">
-    <button class="btn-sm" onclick="clearDates()" style="margin-top:4px;width:100%">Limpiar fechas</button>
-  </div>
-
-  <div>
-    <div class="section-title">Familias & Pares</div>
+    <div class="sec-title">Familias & Pares <button onclick="selectAllPairs()">todos</button></div>
     <div id="family-filters"></div>
   </div>
 
   <div>
-    <div class="section-title">Razón de cierre</div>
+    <div class="sec-title">Fechas</div>
+    <input type="date" id="date-from" onchange="onFilterChange()" style="margin-bottom:5px">
+    <input type="date" id="date-to" onchange="onFilterChange()">
+    <button onclick="clearDates()" style="background:var(--bg3);border:1px solid var(--border);color:var(--muted);padding:3px 7px;border-radius:4px;cursor:pointer;font-size:10px;margin-top:4px;width:100%">Limpiar fechas</button>
+  </div>
+
+  <div>
+    <div class="sec-title">Razón cierre <button onclick="selectAllReasons()">todos</button></div>
     <div id="reason-filters"></div>
   </div>
 
 </div>
 
+<!-- MAIN -->
 <div class="main">
   <div class="tabs">
-    <div class="tab active" onclick="setTab('resumen')">Resumen</div>
-    <div class="tab" onclick="setTab('diario')">Por día</div>
-    <div class="tab" onclick="setTab('pares')">Por par</div>
-    <div class="tab" onclick="setTab('ranking')">Ranking</div>
+    <div class="tab active" onclick="setTab('hoy')">Hoy</div>
+    <div class="tab" onclick="setTab('comp')">Comparativa</div>
+    <div class="tab" onclick="setTab('hist')">Historial</div>
+    <div class="tab" onclick="setTab('anal')">Análisis</div>
+    <div class="tab" onclick="setTab('rank')">Ranking</div>
+    <div class="tab" onclick="setTab('raw')">Trades</div>
   </div>
-  <div id="content"><div class="no-data">Presioná "Cargar datos" para empezar</div></div>
+  <div id="content"><div class="no-data">Cargando datos de Supabase…</div></div>
 </div>
-</div>
+
+</div><!-- /body -->
 
 <script>
-const SB_URL  = "https://xjznnlzvurfwrhomkxed.supabase.co";
-const SB_KEY  = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
+// ═══════════════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════════════
+const SB_URL = "https://xjznnlzvurfwrhomkxed.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc";
+const LS_KEY = "oco_dashboard_v2";
 
 const FAMILIES = {
-  prod: { label: 'Prod',  color: '#4ade80', pairs: ['ADA/USDT','BNB/USDT'] },
-  lab1: { label: 'Lab 1', color: '#60a5fa', pairs: ['TRX/USDT','SOL/USDT','ETH/USDT','LTC/USDT'] },
-  meme: { label: 'Meme',  color: '#c084fc', pairs: ['SHIB/USDT','PEPE/USDT'] },
-  lab2: { label: 'Lab 2', color: '#fb923c', pairs: ['AVAX/USDT','DOGE/USDT'] },
+  prod: { label:"Prod",  color:"#a6e3a1", pairs:["ADA/USDT","BNB/USDT"] },
+  lab1: { label:"Lab 1", color:"#89b4fa", pairs:["TRX/USDT","SOL/USDT","ETH/USDT","LTC/USDT"] },
+  meme: { label:"Meme",  color:"#cba6f7", pairs:["SHIB/USDT","PEPE/USDT","1000SHIB/USDT","1000PEPE/USDT"] },
+  lab2: { label:"Lab 2", color:"#fab387", pairs:["AVAX/USDT","DOGE/USDT"] },
+  btc:  { label:"BTC",   color:"#f9e2af", pairs:["BTC/USDT"] },
 };
-const PAIR_FAMILY = {};
-Object.entries(FAMILIES).forEach(([f,{pairs}]) => pairs.forEach(p => PAIR_FAMILY[p] = f));
+const PAIR_FAM = {};
+Object.entries(FAMILIES).forEach(([f,{pairs}]) => pairs.forEach(p => PAIR_FAM[p]=f));
 
+const VARIANT_COLORS = {
+  oco:       "#a6e3a1",
+  trend:     "#94e2d5",
+  sweep_btc: "#f9e2af",   // amarillo-dorado → BTC sweep (match primero, antes de "sweep")
+  sweep:     "#fab387",   // naranja → sweep ADA/BNB
+};
+function variantColor(v) {
+  if (!v) return "#6c7086";
+  // Orden importa: sweep_btc debe matchear antes que sweep
+  const k = Object.keys(VARIANT_COLORS).find(k => v.startsWith(k));
+  return k ? VARIANT_COLORS[k] : "#6c7086";
+}
+function variantGroup(v) {
+  if (!v) return "oco";
+  if (v.startsWith("trend"))     return "trend";
+  if (v.startsWith("sweep_btc")) return "sweep_btc";
+  if (v.startsWith("sweep"))     return "sweep";
+  return "oco";
+}
+
+// ═══════════════════════════════════════════════════════════════
+// STATE (persiste en localStorage)
+// ═══════════════════════════════════════════════════════════════
 let allTrades = [];
-let checkedPairs = new Set();
-let checkedReasons = new Set();
-let activeTab = 'resumen';
-let pieChart = null, barChart = null;
+let checkedPairs     = new Set();
+let checkedVariants  = new Set();
+let checkedReasons   = new Set();
+let activeTab = "hoy";
+let expandedPairs = new Set();
+let sortCol = null, sortDir = 1;
+let rawSearch = "";
+let charts = {};
 
-// ── Fetch Supabase ────────────────────────────────────
-async function fetchData() {
-  const table = document.getElementById('sb-table').value.trim();
-  const limit  = document.getElementById('sb-limit').value;
-  const st = document.getElementById('sb-status');
-  if (!table) { st.textContent = '⚠ ingresá el nombre de la tabla'; st.className = 'status err'; return; }
-  st.textContent = 'cargando…'; st.className = 'status loading';
+function saveState() {
   try {
-    // Supabase REST: paginar en bloques de 1000 hasta el límite
-    const maxRows = parseInt(limit);
-    let rows = [];
-    let from = 0;
-    const pageSize = 1000;
-    while (rows.length < maxRows) {
-      const to = Math.min(from + pageSize - 1, maxRows - 1);
-      const url = `${SB_URL}/rest/v1/${table}?select=*&order=open_time.desc&offset=${from}&limit=${pageSize}`;
-      const res = await fetch(url, {
-        headers: { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Range: `${from}-${to}` }
-      });
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    localStorage.setItem(LS_KEY, JSON.stringify({
+      pairs:    [...checkedPairs],
+      variants: [...checkedVariants],
+      reasons:  [...checkedReasons],
+      dateFrom: document.getElementById("date-from").value,
+      dateTo:   document.getElementById("date-to").value,
+      baseCap:  document.getElementById("base-cap").value,
+      table:    document.getElementById("sb-table").value,
+      tab:      activeTab,
+      expanded: [...expandedPairs],
+    }));
+  } catch(e){}
+}
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)||"{}"); } catch{ return {}; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SUPABASE FETCH
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener("DOMContentLoaded", () => {
+  const s = loadState();
+  if (s.baseCap) document.getElementById("base-cap").value = s.baseCap;
+  if (s.table)   document.getElementById("sb-table").value  = s.table;
+  if (s.tab)     activeTab = s.tab;
+  if (s.dateFrom) document.getElementById("date-from").value = s.dateFrom;
+  if (s.dateTo)   document.getElementById("date-to").value   = s.dateTo;
+  if (s.expanded) s.expanded.forEach(p => expandedPairs.add(p));
+  fetchData();
+});
+
+async function fetchData() {
+  const table = document.getElementById("sb-table").value.trim();
+  const st = document.getElementById("sb-status");
+  st.textContent = "cargando…"; st.className = "status load";
+  try {
+    let rows = [], from = 0;
+    while (true) {
+      const url = `${SB_URL}/rest/v1/${table}?select=*&order=open_time.desc&offset=${from}&limit=1000`;
+      const res = await fetch(url, { headers:{ apikey:SB_KEY, Authorization:`Bearer ${SB_KEY}` }});
+      if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
       const page = await res.json();
-      if (!page.length) break;
       rows = [...rows, ...page];
-      if (page.length < pageSize) break;
-      from += pageSize;
+      if (page.length < 1000 || rows.length >= 30000) break;
+      from += 1000;
     }
     allTrades = rows.map(normalise);
-    st.textContent = `✓ ${allTrades.length} trades cargados`; st.className = 'status ok';
-    document.getElementById('hdr-info').textContent = `— ${allTrades.length} trades · tabla: ${table}`;
+    st.textContent = `✓ ${allTrades.length} trades`;
+    st.className = "status ok";
+    document.getElementById("last-update").textContent =
+      `Actualizado ${new Date().toLocaleTimeString("es")}`;
     initFilters();
     render();
   } catch(e) {
-    st.textContent = `Error: ${e.message}`; st.className = 'status err';
+    st.textContent = `Error: ${e.message}`; st.className="status err";
+    document.getElementById("content").innerHTML =
+      `<div class="no-data">No se pudo conectar.<br><small style="color:var(--muted)">${e.message}</small></div>`;
   }
 }
 
 function normalise(t) {
-  // Acepta campos con nombres alternativos
-  const pnl = parseFloat(t.pnl_usdt ?? t.pnl ?? t.profit ?? 0);
-  const sym  = t.symbol ?? t.pair ?? '';
-  const dt   = (t.open_time ?? t.opened_at ?? t.created_at ?? '').slice(0, 10);
-  const reason = t.close_reason ?? t.exit_reason ?? t.reason ?? '';
-  return { ...t, pnl, symbol: sym, date: dt, close_reason: reason, family: PAIR_FAMILY[sym] || 'other' };
+  const pnl    = parseFloat(t.pnl_usdt ?? t.pnl ?? t.profit ?? 0);
+  const sym    = t.symbol ?? t.pair ?? "";
+  const dt     = (t.open_time ?? t.opened_at ?? t.created_at ?? "").slice(0,10);
+  const reason = t.close_reason ?? t.exit_reason ?? t.reason ?? "";
+  const variant= t.bot_variant ?? "oco";
+  const hour   = parseInt((t.open_time??t.opened_at??"").slice(11,13)||"0");
+  return { ...t, pnl, symbol:sym, date:dt, close_reason:reason,
+           family:PAIR_FAM[sym]||"other", bot_variant:variant,
+           vgroup:variantGroup(variant), hour_utc:isNaN(t.hour_utc)?hour:t.hour_utc };
 }
 
-// ── Filters ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// FILTERS INIT
+// ═══════════════════════════════════════════════════════════════
 function initFilters() {
-  const allPairs = [...new Set(allTrades.map(t => t.symbol))].sort();
-  checkedPairs = new Set(allPairs);
-  const allReasons = [...new Set(allTrades.map(t => t.close_reason))].filter(Boolean).sort();
-  checkedReasons = new Set(allReasons);
+  const s = loadState();
+  const allPairs    = [...new Set(allTrades.map(t=>t.symbol))].sort();
+  const allVariants = [...new Set(allTrades.map(t=>t.bot_variant))].sort();
+  const allReasons  = [...new Set(allTrades.map(t=>t.close_reason))].filter(Boolean).sort();
 
-  // Build family filter
+  // restore or default all-checked
+  checkedPairs    = s.pairs    ? new Set(s.pairs.filter(p=>allPairs.includes(p)))    : new Set(allPairs);
+  checkedVariants = s.variants ? new Set(s.variants.filter(v=>allVariants.includes(v))): new Set(allVariants);
+  checkedReasons  = s.reasons  ? new Set(s.reasons.filter(r=>allReasons.includes(r))) : new Set(allReasons);
+
+  // Variant filters
+  const vf = document.getElementById("variant-filters");
+  vf.innerHTML = allVariants.map(v => `
+    <div class="variant-row">
+      <input type="checkbox" id="var-${v}" ${checkedVariants.has(v)?"checked":""} onchange="toggleVariant('${v}',this.checked)">
+      <span class="variant-dot" style="background:${variantColor(v)}"></span>
+      <label for="var-${v}" style="font-size:11px;cursor:pointer">${v}</label>
+    </div>`).join("");
+
+  // Family+pair filters
   const famMap = {};
-  Object.entries(FAMILIES).forEach(([f, def]) => {
-    const present = def.pairs.filter(p => allPairs.includes(p));
-    if (present.length) famMap[f] = { ...def, pairs: present };
+  Object.entries(FAMILIES).forEach(([f,def]) => {
+    const present = def.pairs.filter(p=>allPairs.includes(p));
+    if (present.length) famMap[f] = {...def, pairs:present};
   });
-  const other = allPairs.filter(p => !PAIR_FAMILY[p]);
-  if (other.length) famMap['other'] = { label: 'Otros', color: '#94a3b8', pairs: other };
-
-  const ff = document.getElementById('family-filters');
-  ff.innerHTML = '';
-  Object.entries(famMap).forEach(([fam, def]) => {
-    const block = document.createElement('div');
-    block.innerHTML = `
-      <div class="family-header">
-        <input type="checkbox" id="fam-${fam}" checked onchange="toggleFamily('${fam}',this.checked)">
+  const other = allPairs.filter(p=>!PAIR_FAM[p]);
+  if (other.length) famMap["other"] = {label:"Otros",color:"#6c7086",pairs:other};
+  const ff = document.getElementById("family-filters");
+  ff.innerHTML = "";
+  Object.entries(famMap).forEach(([fam,def]) => {
+    const allOn = def.pairs.every(p=>checkedPairs.has(p));
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <div class="fam-hdr">
+        <input type="checkbox" id="fam-${fam}" ${allOn?"checked":""} onchange="toggleFamily('${fam}',this.checked)">
         <span class="dot" style="background:${def.color}"></span>
-        <label for="fam-${fam}" style="cursor:pointer;font-size:12px">${def.label}</label>
+        <label for="fam-${fam}" style="cursor:pointer;font-size:11px">${def.label}</label>
       </div>
-      <div class="family-pairs">${def.pairs.map(p=>`
-        <label><input type="checkbox" class="pair-cb" data-pair="${p}" data-fam="${fam}" checked
-          onchange="togglePair('${p}',this.checked,'${fam}')"> ${p.replace('/USDT','')}</label>`).join('')}</div>`;
-    ff.appendChild(block);
+      <div class="fam-pairs">${def.pairs.map(p=>`
+        <label><input type="checkbox" class="pair-cb" data-pair="${p}" data-fam="${fam}"
+          ${checkedPairs.has(p)?"checked":""}
+          onchange="togglePair('${p}',this.checked,'${fam}')"> ${p.replace("/USDT","")}</label>`).join("")}</div>`;
+    ff.appendChild(div);
   });
 
-  const rf = document.getElementById('reason-filters');
-  rf.innerHTML = allReasons.map(r=>`<label><input type="checkbox" checked
-    onchange="toggleReason('${r}',this.checked)"> ${r||'(sin razón)'}</label>`).join('');
+  // Reason filters
+  const rf = document.getElementById("reason-filters");
+  rf.innerHTML = allReasons.map(r=>`
+    <label><input type="checkbox" id="rsn-${r}" ${checkedReasons.has(r)?"checked":""}
+      onchange="toggleReason('${r}',this.checked)"> ${r}</label>`).join("");
 }
 
-function toggleFamily(fam, checked) {
-  document.querySelectorAll(`.pair-cb[data-fam="${fam}"]`).forEach(cb => {
-    cb.checked = checked;
-    checked ? checkedPairs.add(cb.dataset.pair) : checkedPairs.delete(cb.dataset.pair);
-  });
-  render();
+function toggleVariant(v,on){ on?checkedVariants.add(v):checkedVariants.delete(v); onFilterChange(); }
+function toggleFamily(fam,on){
+  document.querySelectorAll(`.pair-cb[data-fam="${fam}"]`).forEach(cb=>{
+    cb.checked=on; on?checkedPairs.add(cb.dataset.pair):checkedPairs.delete(cb.dataset.pair);
+  }); onFilterChange();
 }
-function togglePair(pair, checked, fam) {
-  checked ? checkedPairs.add(pair) : checkedPairs.delete(pair);
-  const all = [...document.querySelectorAll(`.pair-cb[data-fam="${fam}"]`)].every(c=>c.checked);
-  document.getElementById(`fam-${fam}`).checked = all;
-  render();
+function togglePair(p,on,fam){
+  on?checkedPairs.add(p):checkedPairs.delete(p);
+  document.getElementById(`fam-${fam}`).checked=
+    [...document.querySelectorAll(`.pair-cb[data-fam="${fam}"]`)].every(c=>c.checked);
+  onFilterChange();
 }
-function toggleReason(r, checked) { checked ? checkedReasons.add(r) : checkedReasons.delete(r); render(); }
-function clearDates() { document.getElementById('date-from').value=''; document.getElementById('date-to').value=''; render(); }
+function toggleReason(r,on){ on?checkedReasons.add(r):checkedReasons.delete(r); onFilterChange(); }
+function clearDates(){ document.getElementById("date-from").value=""; document.getElementById("date-to").value=""; onFilterChange(); }
+function selectAllVariants(){
+  document.querySelectorAll("[id^=var-]").forEach(cb=>{cb.checked=true;checkedVariants.add(cb.id.slice(4));});
+  onFilterChange();
+}
+function selectAllPairs(){
+  document.querySelectorAll(".pair-cb").forEach(cb=>{cb.checked=true;checkedPairs.add(cb.dataset.pair);});
+  document.querySelectorAll("[id^=fam-]").forEach(cb=>cb.checked=true);
+  onFilterChange();
+}
+function selectAllReasons(){
+  document.querySelectorAll("[id^=rsn-]").forEach(cb=>{cb.checked=true;checkedReasons.add(cb.id.slice(4));});
+  onFilterChange();
+}
+function onFilterChange(){ saveState(); render(); }
 
+// ═══════════════════════════════════════════════════════════════
+// FILTER DATA
+// ═══════════════════════════════════════════════════════════════
 function getFiltered() {
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
+  const from = document.getElementById("date-from").value;
+  const to   = document.getElementById("date-to").value;
   return allTrades.filter(t =>
     checkedPairs.has(t.symbol) &&
-    (checkedReasons.has(t.close_reason) || (!t.close_reason && checkedReasons.has(''))) &&
-    (!from || t.date >= from) &&
-    (!to   || t.date <= to)
+    checkedVariants.has(t.bot_variant) &&
+    (checkedReasons.has(t.close_reason)||(!t.close_reason)) &&
+    (!from||t.date>=from) &&
+    (!to||t.date<=to)
   );
 }
 
-// ── Tabs ──────────────────────────────────────────────
-function setTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab').forEach((el,i) =>
-    el.classList.toggle('active', ['resumen','diario','pares','ranking'][i]===tab));
-  render();
+// ═══════════════════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════════════════
+function setTab(tab){
+  activeTab=tab;
+  document.querySelectorAll(".tab").forEach((el,i)=>
+    el.classList.toggle("active",["hoy","comp","hist","anal","rank","raw"][i]===tab));
+  saveState(); render();
 }
 
-function render() {
+function render(){
   if (!allTrades.length) return;
   const data = getFiltered();
-  const el = document.getElementById('content');
-  if (!data.length) { el.innerHTML='<div class="no-data">Sin datos para los filtros seleccionados</div>'; return; }
-  pieChart = barChart = null; // reset refs
-  if (activeTab==='resumen') el.innerHTML = renderResumen(data);
-  else if (activeTab==='diario') el.innerHTML = renderDiario(data);
-  else if (activeTab==='pares') el.innerHTML = renderPares(data);
-  else el.innerHTML = renderRanking(data);
-  // draw charts after DOM insertion
-  if (activeTab==='resumen') drawCharts(data);
-  if (activeTab==='ranking') drawRankingChart(data);
+  const el = document.getElementById("content");
+  // destroy old charts
+  Object.values(charts).forEach(c=>{try{c.destroy()}catch{}});
+  charts={};
+  if (!data.length){ el.innerHTML='<div class="no-data">Sin datos para los filtros seleccionados</div>'; return; }
+  if (activeTab==="hoy")  el.innerHTML = renderHoy(data);
+  else if (activeTab==="comp") el.innerHTML = renderComp(data);
+  else if (activeTab==="hist") el.innerHTML = renderHist(data);
+  else if (activeTab==="anal") el.innerHTML = renderAnal(data);
+  else if (activeTab==="rank") el.innerHTML = renderRank(data);
+  else el.innerHTML = renderRaw(data);
+  requestAnimationFrame(()=>drawCharts(data));
 }
 
-// ── Stats helpers ─────────────────────────────────────
-function stats(ts) {
-  const wins = ts.filter(t=>t.pnl>0).length;
-  const losses = ts.filter(t=>t.pnl<0).length;
-  const pnl = ts.reduce((s,t)=>s+t.pnl,0);
-  const avgWin  = ts.filter(t=>t.pnl>0).reduce((s,t)=>s+t.pnl,0) / (wins||1);
-  const avgLoss = ts.filter(t=>t.pnl<0).reduce((s,t)=>s+t.pnl,0) / (losses||1);
-  const wr = wins/(ts.length||1)*100;
-  const ev = pnl/(ts.length||1);
-  return { n: ts.length, wins, losses, pnl, wr, ev, avgWin, avgLoss };
+// ═══════════════════════════════════════════════════════════════
+// STATS HELPERS
+// ═══════════════════════════════════════════════════════════════
+function stats(ts){
+  const closed = ts.filter(t=>t.status!=="open");
+  const wins   = closed.filter(t=>t.pnl>0).length;
+  const losses = closed.filter(t=>t.pnl<0).length;
+  const pnl    = closed.reduce((s,t)=>s+t.pnl,0);
+  const avgWin = wins   ? closed.filter(t=>t.pnl>0).reduce((s,t)=>s+t.pnl,0)/wins  : 0;
+  const avgLoss= losses ? closed.filter(t=>t.pnl<0).reduce((s,t)=>s+t.pnl,0)/losses: 0;
+  const n = closed.length;
+  const wr = n ? wins/n*100 : 0;
+  const ev = n ? pnl/n : 0;
+  const be = (avgWin||avgLoss) ? Math.abs(avgLoss)/(avgWin+Math.abs(avgLoss))*100 : 30.8;
+  // Sharpe (daily)
+  const byDay={};
+  closed.forEach(t=>{ byDay[t.date]=(byDay[t.date]||0)+t.pnl; });
+  const daily=Object.values(byDay);
+  const mean=daily.reduce((a,b)=>a+b,0)/(daily.length||1);
+  const std=Math.sqrt(daily.reduce((s,v)=>s+(v-mean)**2,0)/(daily.length||1));
+  const sharpe = std ? (mean/std)*Math.sqrt(252) : 0;
+  // MaxDD
+  let peak=-Infinity,maxDD=0,cumPnl=0;
+  [...closed].sort((a,b)=>(a.open_time??"").localeCompare(b.open_time??"")==0?0:1)
+    .forEach(t=>{ cumPnl+=t.pnl; if(cumPnl>peak)peak=cumPnl; const dd=peak-cumPnl; if(dd>maxDD)maxDD=dd; });
+  // Kelly
+  const kelly = (avgWin && avgLoss) ? (wr/100 - (1-wr/100)/Math.abs(avgLoss/avgWin))*100 : 0;
+  // WR 95% CI
+  const z=1.96, p=wr/100;
+  const ci = n>0 ? z*Math.sqrt(p*(1-p)/n)*100 : 0;
+  return {n,wins,losses,pnl,wr,ev,avgWin,avgLoss,be,sharpe,maxDD,kelly,ci,open:ts.filter(t=>t.status==="open").length};
 }
-const pc = v => v>0?'green':v<0?'red':'';
-const fmt = v => (v>=0?'+':'')+v.toFixed(3)+'$';
-const fmtWR = v => v.toFixed(1)+'%';
 
-// ── Resumen ───────────────────────────────────────────
-function renderResumen(data) {
-  const s = stats(data);
-  const be = Math.abs(s.avgLoss)/(s.avgWin+Math.abs(s.avgLoss))*100;
-  const days = [...new Set(data.map(t=>t.date))].length;
+const pc = v=>v>0?"green":v<0?"red":"";
+const fmt= v=>(v>=0?"+":"")+v.toFixed(3)+"$";
+const fmtWR = v=>v.toFixed(1)+"%";
+const fmtM  = v=>v.toFixed(2)+"$";
+function clr(v){ return `color:${v>0?"var(--green)":v<0?"var(--red)":"var(--text)"}` }
+
+// ═══════════════════════════════════════════════════════════════
+// GAUGE SVG
+// ═══════════════════════════════════════════════════════════════
+function gaugeArc(cx,cy,r,startDeg,endDeg){
+  const s=startDeg*Math.PI/180, e=endDeg*Math.PI/180;
+  const x1=cx+r*Math.cos(s), y1=cy+r*Math.sin(s);
+  const x2=cx+r*Math.cos(e), y2=cy+r*Math.sin(e);
+  const large=endDeg-startDeg>180?1:0;
+  return `M${x1},${y1} A${r},${r},0,${large},1,${x2},${y2}`;
+}
+
+function renderGauge(id, value, min, max, be, label, unit="", colorFn=null){
+  // Semicircle: 180° to 0° (left to right)
+  const clamp = Math.max(min,Math.min(max,value));
+  const pct   = (clamp-min)/(max-min);
+  const needleDeg = 180 + pct*180; // 180=left end, 360=right end
+  const cx=80,cy=75,r=58,ri=42;
+  // Zones
+  const bePct = (be-min)/(max-min);
+  const beEnd = 180+bePct*180;
+  const color = colorFn ? colorFn(value) : (value>=be?"var(--green)":value>=(be*0.9)?"var(--yellow)":"var(--red)");
+  const nx = cx+ri*Math.cos(needleDeg*Math.PI/180);
+  const ny = cy+ri*Math.sin(needleDeg*Math.PI/180);
+  return `<svg class="gauge-svg" viewBox="0 0 160 90" id="${id}">
+    <!-- track -->
+    <path d="${gaugeArc(cx,cy,r,180,360)}" fill="none" stroke="var(--bg3)" stroke-width="12" stroke-linecap="round"/>
+    <!-- red zone -->
+    <path d="${gaugeArc(cx,cy,r,180,beEnd)}" fill="none" stroke="var(--red)" stroke-width="12" opacity=".35"/>
+    <!-- green zone -->
+    <path d="${gaugeArc(cx,cy,r,beEnd,360)}" fill="none" stroke="var(--green)" stroke-width="12" opacity=".25"/>
+    <!-- value arc -->
+    <path d="${gaugeArc(cx,cy,r,180,needleDeg)}" fill="none" stroke="${color}" stroke-width="12" stroke-linecap="round"/>
+    <!-- needle dot -->
+    <circle cx="${nx}" cy="${ny}" r="5" fill="${color}"/>
+    <circle cx="${cx}" cy="${cy}" r="4" fill="var(--bg2)"/>
+    <!-- be marker -->
+    <circle cx="${cx+r*Math.cos(beEnd*Math.PI/180)}" cy="${cy+r*Math.sin(beEnd*Math.PI/180)}" r="3" fill="var(--yellow)"/>
+    <!-- labels -->
+    <text x="22" y="80" fill="var(--muted)" font-size="9">${min}${unit}</text>
+    <text x="${cx*2-22}" y="80" fill="var(--muted)" font-size="9" text-anchor="end">${max}${unit}</text>
+  </svg>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB: HOY
+// ═══════════════════════════════════════════════════════════════
+function renderHoy(allF){
+  const today=new Date().toISOString().slice(0,10);
+  const dates=[...new Set(allF.map(t=>t.date))].sort();
+  const tgt=dates.includes(today)?today:dates[dates.length-1];
+  const todayT=allF.filter(t=>t.date===tgt);
+  const s=stats(todayT);
+  const baseCap=parseFloat(document.getElementById("base-cap").value)||200;
+  const cumPre=allTrades.filter(t=>t.date<tgt&&t.status!=="open").reduce((s,t)=>s+t.pnl,0);
+  const saldoI=baseCap+cumPre, saldoC=saldoI+s.pnl;
+
+  // gauges
+  const g1=renderGauge("g-wr",s.wr,0,100,s.be,"Win Rate","%");
+  const g2=renderGauge("g-ev",s.ev,-0.15,0.15,0,"EV/trade","$",v=>v>0?"var(--green)":v<0?"var(--red)":"var(--text)");
+  const g3=renderGauge("g-pnl",s.pnl,-3,3,0,"PnL día","$",v=>v>0?"var(--green)":v<0?"var(--red)":"var(--text)");
+
+  // pair cards
+  const byPair={};
+  todayT.forEach(t=>{if(!byPair[t.symbol])byPair[t.symbol]=[];byPair[t.symbol].push(t);});
+  const pairsSorted=Object.keys(byPair).sort((a,b)=>
+    byPair[b].reduce((s,t)=>s+t.pnl,0)-byPair[a].reduce((s,t)=>s+t.pnl,0));
+
+  const cards=pairsSorted.map(sym=>{
+    const ts=byPair[sym]; const ps=stats(ts);
+    const fam=PAIR_FAM[sym]||"other";
+    const famColor=FAMILIES[fam]?.color||"#6c7086";
+    const isOpen=expandedPairs.has(sym);
+    const pairPre=allTrades.filter(t=>t.symbol===sym&&t.date<tgt&&t.status!=="open").reduce((s,t)=>s+t.pnl,0);
+    const pBase=baseCap/Math.max(Object.keys(byPair).length,1);
+    const pI=pBase+pairPre, pC=pI+ps.pnl;
+    const variants=[...new Set(ts.map(t=>t.bot_variant))].join(", ");
+    const tradeRows=ts.sort((a,b)=>(a.open_time??"").localeCompare(b.open_time??"")||0)
+      .map(t=>`<tr>
+        <td style="color:var(--muted)">${(t.open_time??"").slice(11,16)}</td>
+        <td>${t.side||t.direction||"—"}</td>
+        <td style="font-size:10px;color:var(--muted)">${t.bot_variant||""}</td>
+        <td class="${t.close_reason==="TP"?"green":t.close_reason==="SL"?"red":""}">${t.close_reason||t.status||"—"}</td>
+        <td style="${clr(t.pnl)}">${fmt(t.pnl)}</td>
+        <td style="color:var(--muted)">${(t.close_time??"").slice(11,16)}</td>
+      </tr>`).join("");
+    return `
+    <div class="pair-card">
+      <div class="pair-card-hdr" onclick="toggleCard('${sym}')">
+        <span class="pc-sym" style="color:${famColor}">${sym.replace("/USDT","")}</span>
+        <span class="pc-badge b-${fam}">${FAMILIES[fam]?.label||fam}</span>
+        <span class="pc-variant">${variants}</span>
+        <span class="pc-meta">
+          <span>ini <b>${fmtM(pI)}</b></span>
+          <span>fin <b style="${clr(ps.pnl)}">${fmtM(pC)}</b></span>
+          <span style="color:var(--muted)">${ps.n} trades · ${fmtWR(ps.wr)} WR</span>
+          ${ps.open>0?`<span style="color:var(--yellow)">⏳${ps.open} open</span>`:""}
+        </span>
+        <span class="pc-pnl" style="${clr(ps.pnl)}">${fmt(ps.pnl)}</span>
+        <span class="pc-chevron">${isOpen?"▲":"▼"}</span>
+      </div>
+      <div class="pair-body ${isOpen?"open":""}">
+        <table><thead><tr><th>Hora</th><th>Dir</th><th>Bot</th><th>Cierre</th><th>PnL</th><th>Out</th></tr></thead>
+        <tbody>${tradeRows}</tbody></table>
+      </div>
+    </div>`;
+  }).join("");
+
   return `
-  <div class="kpi-row">
-    <div class="kpi"><div class="kpi-val ${pc(s.pnl)}">${fmt(s.pnl)}</div><div class="kpi-lbl">PnL Total</div></div>
-    <div class="kpi"><div class="kpi-val ${s.wr>be?'green':'red'}">${fmtWR(s.wr)}</div><div class="kpi-lbl">Win Rate</div></div>
-    <div class="kpi"><div class="kpi-val ${pc(s.ev)}">${fmt(s.ev)}</div><div class="kpi-lbl">EV / trade</div></div>
-    <div class="kpi"><div class="kpi-val blue">${s.n}</div><div class="kpi-lbl">Trades</div></div>
-    <div class="kpi"><div class="kpi-val purple">${days}</div><div class="kpi-lbl">Días</div></div>
-    <div class="kpi"><div class="kpi-val">${fmtWR(be)}</div><div class="kpi-lbl">Break-even WR</div></div>
-  </div>
-  <div style="font-size:11px;color:#888;display:flex;gap:12px;margin-bottom:14px;">
-    <span>avg_win <b class="green">${s.avgWin.toFixed(4)}$</b></span>
-    <span>avg_loss <b class="red">${s.avgLoss.toFixed(4)}$</b></span>
-    <span>wins <b>${s.wins}</b></span>
-    <span>losses <b>${s.losses}</b></span>
-  </div>
-  <div class="section-title" style="margin-bottom:8px">Por familia</div>
-  ${renderFamilyTable(data)}
-  <div class="charts-row">
-    <div class="chart-box" style="width:280px">
-      <div class="section-title" style="margin-bottom:8px">Operaciones por par</div>
-      <canvas id="pie-chart"></canvas>
+  <div class="gauges-row">
+    <div class="gauge-box">
+      <div class="gauge-label">Win Rate</div>
+      ${g1}
+      <div class="gauge-val ${s.wr>=s.be?"green":"red"}">${fmtWR(s.wr)}</div>
+      <div class="gauge-sub">break-even ${fmtWR(s.be)} <span style="color:var(--yellow)">●</span></div>
     </div>
+    <div class="gauge-box">
+      <div class="gauge-label">EV / trade</div>
+      ${g2}
+      <div class="gauge-val ${s.ev>0?"green":s.ev<0?"red":""}">${fmt(s.ev)}</div>
+      <div class="gauge-sub">avg_win ${s.avgWin.toFixed(3)}$ · avg_loss ${s.avgLoss.toFixed(3)}$</div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-label">PnL ${tgt===today?"hoy":tgt}</div>
+      ${g3}
+      <div class="gauge-val ${s.pnl>0?"green":s.pnl<0?"red":""}">${fmt(s.pnl)}</div>
+      <div class="gauge-sub">${s.n} trades · ${s.wins}W ${s.losses}L</div>
+    </div>
+    <div style="flex:1;min-width:160px">
+      <div class="kpi-strip" style="flex-direction:column;gap:8px">
+        <div class="kpi"><div class="kpi-val" style="${clr(saldoC-baseCap)}">${fmtM(saldoC)}</div><div class="kpi-lbl">Saldo cierre</div></div>
+        <div class="kpi"><div class="kpi-val" style="color:var(--text)">${fmtM(saldoI)}</div><div class="kpi-lbl">Saldo inicio</div></div>
+        <div class="kpi"><div class="kpi-val ${s.sharpe>0?"green":"red"}">${s.sharpe.toFixed(2)}</div><div class="kpi-lbl">Sharpe (total)</div></div>
+      </div>
+    </div>
+  </div>
+  ${cards}`;
+}
+
+function toggleCard(sym){
+  expandedPairs.has(sym)?expandedPairs.delete(sym):expandedPairs.add(sym);
+  saveState(); render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB: COMPARATIVA (OCO vs Trend vs Sweep)
+// ═══════════════════════════════════════════════════════════════
+function renderComp(data){
+  const groups={oco:[],trend:[],sweep:[],sweep_btc:[]};
+  data.forEach(t=>{ const g=t.vgroup||"oco"; if(groups[g]!==undefined)groups[g].push(t); else groups["oco"].push(t); });
+  const rows=Object.entries(groups).filter(([,ts])=>ts.length>0).map(([g,ts])=>{
+    const s=stats(ts);
+    const color=VARIANT_COLORS[g]||"#6c7086";
+    const glabel=g==="sweep_btc"?"SWEEP BTC":g==="sweep"?"SWEEP ADA+BNB":g.toUpperCase();
+    return `<tr>
+      <td><span class="badge b-${g.replace("_btc","")}" style="background:${color}22;color:${color}">${glabel}</span></td>
+      <td>${s.n}</td>
+      <td class="${s.wr>=s.be?"green":"red"}">${fmtWR(s.wr)}</td>
+      <td class="${s.wr>=s.be?"green":"red"}">${fmtWR(s.be)}</td>
+      <td style="${clr(s.ev)}">${fmt(s.ev)}</td>
+      <td style="${clr(s.pnl)}" class="font-weight:700">${fmt(s.pnl)}</td>
+      <td class="green">${s.avgWin.toFixed(4)}$</td>
+      <td class="red">${s.avgLoss.toFixed(4)}$</td>
+      <td class="${s.sharpe>0?"green":"red"}">${s.sharpe.toFixed(2)}</td>
+      <td class="red">-${fmtM(s.maxDD)}</td>
+      <td class="${s.kelly>0?"green":"red"}">${s.kelly.toFixed(1)}%</td>
+      <td class="muted">${fmtWR(s.wr-s.ci)} – ${fmtWR(s.wr+s.ci)}</td>
+    </tr>`;
+  });
+  return `
+  <table class="data" style="margin-bottom:24px"><thead><tr>
+    <th>Variante</th><th>Trades</th><th>WR</th><th>BE WR</th><th>EV/trade</th>
+    <th>PnL</th><th>avg_win</th><th>avg_loss</th><th>Sharpe</th><th>MaxDD</th><th>Kelly</th><th>CI 95%</th>
+  </tr></thead><tbody>${rows.join("")}</tbody></table>
+  <div class="charts-row">
+    <div class="chart-box" style="flex:1;min-width:300px"><div class="sec-title" style="margin-bottom:8px">PnL por variante · día</div><canvas id="comp-chart" style="max-height:200px"></canvas></div>
+    <div class="chart-box" style="width:240px"><div class="sec-title" style="margin-bottom:8px">Trades por variante</div><canvas id="comp-pie" style="max-height:200px"></canvas></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB: HISTORIAL
+// ═══════════════════════════════════════════════════════════════
+function renderHist(data){
+  const byDay={};
+  data.forEach(t=>{if(!byDay[t.date])byDay[t.date]={};
+    if(!byDay[t.date][t.symbol])byDay[t.date][t.symbol]=[];
+    byDay[t.date][t.symbol].push(t);});
+  const dates=Object.keys(byDay).sort().reverse();
+  const allPairs=[...new Set(data.map(t=>t.symbol))].sort();
+  const baseCap=parseFloat(document.getElementById("base-cap").value)||200;
+  const sortedDates=[...dates].reverse();
+  let cum=0; const cumBefore={};
+  sortedDates.forEach(d=>{cumBefore[d]=cum;cum+=Object.values(byDay[d]).flat().filter(t=>t.status!=="open").reduce((s,t)=>s+t.pnl,0);});
+  let html=`<div style="overflow-x:auto"><table class="data"><thead><tr><th>Fecha</th>`;
+  allPairs.forEach(p=>html+=`<th>${p.replace("/USDT","")}</th>`);
+  html+=`<th>PnL</th><th>WR</th><th>Trades</th><th>Inicio</th><th>Cierre</th></tr></thead><tbody>`;
+  dates.forEach(d=>{
+    const dayTs=Object.values(byDay[d]).flat();
+    const ds=stats(dayTs);
+    const si=baseCap+cumBefore[d], sc=si+ds.pnl;
+    html+=`<tr><td style="font-weight:700">${d}</td>`;
+    allPairs.forEach(p=>{
+      const ts=byDay[d][p]||[];
+      if(!ts.length){html+='<td style="color:var(--border)">—</td>';return;}
+      const ps=stats(ts);
+      html+=`<td style="${clr(ps.pnl)}" title="WR ${fmtWR(ps.wr)} · ${ps.n}t">${fmt(ps.pnl)}</td>`;
+    });
+    html+=`<td style="${clr(ds.pnl)};font-weight:700">${fmt(ds.pnl)}</td>
+           <td class="${ds.wr>=ds.be?"green":"red"}">${fmtWR(ds.wr)}</td>
+           <td class="blue">${ds.n}</td>
+           <td style="color:var(--muted)">${fmtM(si)}</td>
+           <td style="${clr(ds.pnl)}">${fmtM(sc)}</td></tr>`;
+  });
+  html+="</tbody></table></div>";
+  return html;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB: ANÁLISIS
+// ═══════════════════════════════════════════════════════════════
+function renderAnal(data){
+  const s=stats(data);
+  // Hourly heatmap data
+  const hourData={};
+  for(let h=0;h<24;h++) hourData[h]={pnl:0,n:0,wins:0};
+  data.filter(t=>t.status!=="open").forEach(t=>{
+    const h=t.hour_utc??0;
+    hourData[h].pnl+=t.pnl; hourData[h].n++; if(t.pnl>0)hourData[h].wins++;
+  });
+  const hvals=Object.values(hourData).map(h=>h.pnl);
+  const hmax=Math.max(...hvals.map(Math.abs),0.001);
+  const cells=Array.from({length:24},(_,h)=>{
+    const d=hourData[h];
+    const intensity=Math.abs(d.pnl)/hmax;
+    const bg=d.pnl>0?`rgba(166,227,161,${0.15+intensity*0.55})`
+              :d.pnl<0?`rgba(243,139,168,${0.15+intensity*0.55})`:`rgba(108,112,134,0.1)`;
+    const wr=d.n?d.wins/d.n*100:0;
+    return `<div class="hm-cell" style="background:${bg}" title="${h}h UTC · ${d.n}t · ${wr.toFixed(0)}%WR · ${fmt(d.pnl)}">
+      <div style="font-size:9px;color:var(--muted)">${h}h</div>
+      <div style="font-size:10px;font-weight:700;${clr(d.pnl)}">${d.pnl!==0?fmt(d.pnl):""}</div>
+      <div style="font-size:9px;color:var(--muted)">${d.n?d.n+"t":""}</div>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="sec-title" style="margin-bottom:10px">Métricas de riesgo</div>
+  <div class="risk-grid">
+    <div class="risk-card">
+      <div class="risk-card-title">Sharpe (anualizado)</div>
+      <div class="risk-card-val ${s.sharpe>1?"green":s.sharpe>0?"yellow":"red"}">${s.sharpe.toFixed(2)}</div>
+      <div class="risk-card-sub">Retorno diario / Std · √252</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">Max Drawdown</div>
+      <div class="risk-card-val red">-${fmtM(s.maxDD)}</div>
+      <div class="risk-card-sub">Caída máxima desde equity peak</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">Kelly Criterion</div>
+      <div class="risk-card-val ${s.kelly>0?"green":"red"}">${s.kelly.toFixed(1)}%</div>
+      <div class="risk-card-sub">Fracción óptima de capital</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">WR ± CI 95%</div>
+      <div class="risk-card-val ${s.wr>=s.be?"green":"red"}">${fmtWR(s.wr)}</div>
+      <div class="risk-card-sub">[${fmtWR(Math.max(0,s.wr-s.ci))} – ${fmtWR(Math.min(100,s.wr+s.ci))}] · n=${s.n}</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">Break-even WR</div>
+      <div class="risk-card-val yellow">${fmtWR(s.be)}</div>
+      <div class="risk-card-sub">|avg_loss| / (avg_win + |avg_loss|)</div>
+    </div>
+    <div class="risk-card">
+      <div class="risk-card-title">EV / trade</div>
+      <div class="risk-card-val ${s.ev>0?"green":"red"}">${fmt(s.ev)}</div>
+      <div class="risk-card-sub">Esperanza matemática por operación</div>
+    </div>
+  </div>
+  <div class="sec-title" style="margin:18px 0 10px">Heatmap horario (UTC) — PnL total</div>
+  <div class="heatmap-wrap">
+    <div style="display:grid;grid-template-columns:repeat(24,1fr);gap:2px;min-width:600px">${cells}</div>
+  </div>
+  <div class="charts-row">
     <div class="chart-box" style="flex:1;min-width:300px">
-      <div class="section-title" style="margin-bottom:8px">PnL por par</div>
-      <canvas id="bar-chart"></canvas>
+      <div class="sec-title" style="margin-bottom:8px">Curva de equity</div>
+      <canvas id="equity-chart" style="max-height:180px"></canvas>
+    </div>
+    <div class="chart-box" style="flex:1;min-width:260px">
+      <div class="sec-title" style="margin-bottom:8px">PnL por hora UTC</div>
+      <canvas id="hour-chart" style="max-height:180px"></canvas>
     </div>
   </div>`;
 }
 
-function renderFamilyTable(data) {
-  const fg = {};
-  data.forEach(t => { if(!fg[t.family]) fg[t.family]=[]; fg[t.family].push(t); });
-  return `<table style="margin-bottom:16px"><thead><tr>
-    <th>Familia</th><th>Trades</th><th>WR</th><th>EV/trade</th><th>PnL</th>
-  </tr></thead><tbody>` +
-  Object.entries(fg).map(([f,ts]) => {
-    const s=stats(ts); const def=FAMILIES[f]||{label:f};
-    return `<tr><td><span class="badge badge-${f}">${def.label||f}</span></td>
-      <td>${s.n}</td><td>${fmtWR(s.wr)}</td>
-      <td class="${pc(s.ev)}">${fmt(s.ev)}</td>
-      <td class="${pc(s.pnl)}" style="font-weight:600">${fmt(s.pnl)}</td></tr>`;
-  }).join('') + '</tbody></table>';
-}
-
-function drawCharts(data) {
-  // Pie — operaciones por par
-  const bySym = {};
-  data.forEach(t => { bySym[t.symbol] = (bySym[t.symbol]||0)+1; });
-  const labels = Object.keys(bySym);
-  const colors = labels.map(sym => {
-    const f = PAIR_FAMILY[sym]||'other';
-    return FAMILIES[f]?.color || '#94a3b8';
-  });
-  const pieCtx = document.getElementById('pie-chart')?.getContext('2d');
-  if (pieCtx) {
-    if (pieChart) pieChart.destroy();
-    pieChart = new Chart(pieCtx, {
-      type: 'doughnut',
-      data: { labels: labels.map(l=>l.replace('/USDT','')), datasets: [{ data: Object.values(bySym), backgroundColor: colors, borderColor: '#0f1117', borderWidth: 2 }] },
-      options: { plugins: { legend: { labels: { color: '#aaa', font: { size: 11 } } } }, cutout: '55%' }
-    });
-  }
-
-  // Bar — PnL por par
-  const pnlBySym = {};
-  data.forEach(t => { pnlBySym[t.symbol] = (pnlBySym[t.symbol]||0)+t.pnl; });
-  const barLabels = Object.keys(pnlBySym).sort((a,b)=>pnlBySym[b]-pnlBySym[a]);
-  const barColors = barLabels.map(sym => pnlBySym[sym] >= 0 ? '#4ade80' : '#f87171');
-  const barCtx = document.getElementById('bar-chart')?.getContext('2d');
-  if (barCtx) {
-    if (barChart) barChart.destroy();
-    barChart = new Chart(barCtx, {
-      type: 'bar',
-      data: { labels: barLabels.map(l=>l.replace('/USDT','')), datasets: [{ data: barLabels.map(l=>+pnlBySym[l].toFixed(3)), backgroundColor: barColors, borderRadius: 4 }] },
-      options: {
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { ticks: { color: '#888' }, grid: { color: '#1e1e2e' } },
-          y: { ticks: { color: '#888', callback: v => v+'$' }, grid: { color: '#1e1e2e' } }
-        }
-      }
-    });
-  }
-}
-
-// ── Por día ───────────────────────────────────────────
-function renderDiario(data) {
-  const byDay = {};
-  data.forEach(t => { if(!byDay[t.date]) byDay[t.date]={}; if(!byDay[t.date][t.symbol]) byDay[t.date][t.symbol]=[]; byDay[t.date][t.symbol].push(t); });
-  const dates = Object.keys(byDay).sort().reverse();
-  const allPairs = [...new Set(data.map(t=>t.symbol))].sort();
-  let html = `<table><thead><tr><th>Fecha</th>`;
-  allPairs.forEach(p => html += `<th>${p.replace('/USDT','')}</th>`);
-  html += `<th>Total</th><th>WR</th><th>Trades</th></tr></thead><tbody>`;
-  dates.forEach(d => {
-    const ds = stats(Object.values(byDay[d]).flat());
-    html += `<tr><td style="font-weight:600">${d}</td>`;
-    allPairs.forEach(p => {
-      const ts = byDay[d][p]||[];
-      if (!ts.length) { html += '<td style="color:#333">—</td>'; return; }
-      const ps = stats(ts);
-      html += `<td class="${pc(ps.pnl)}" title="WR ${fmtWR(ps.wr)} | ${ps.n} trades">${fmt(ps.pnl)}</td>`;
-    });
-    html += `<td class="${pc(ds.pnl)}" style="font-weight:600">${fmt(ds.pnl)}</td>
-             <td class="${ds.wr>28?'green':'red'}">${fmtWR(ds.wr)}</td>
-             <td class="blue">${ds.n}</td></tr>`;
-  });
-  return html + '</tbody></table>';
-}
-
-// ── Por par ───────────────────────────────────────────
-function renderPares(data) {
-  const byPair = {};
-  data.forEach(t => { if(!byPair[t.symbol]) byPair[t.symbol]=[]; byPair[t.symbol].push(t); });
-  const rows = Object.entries(byPair).map(([sym,ts]) => ({ sym, fam: PAIR_FAMILY[sym]||'other', ...stats(ts), ts }))
-               .sort((a,b) => b.pnl-a.pnl);
-  return `<table><thead><tr>
-    <th>Par</th><th>Familia</th><th>Trades</th><th>WR</th><th>EV/trade</th>
-    <th>PnL</th><th>avg_win</th><th>avg_loss</th><th>TP</th><th>SL</th>
-  </tr></thead><tbody>` +
-  rows.map(r => {
-    const byR = {};
-    r.ts.forEach(t => { byR[t.close_reason] = (byR[t.close_reason]||0)+1; });
-    return `<tr>
-      <td style="font-weight:600">${r.sym.replace('/USDT','')}</td>
-      <td><span class="badge badge-${r.fam}">${FAMILIES[r.fam]?.label||r.fam}</span></td>
-      <td>${r.n}</td>
-      <td class="${r.wr>28?'green':'red'}">${fmtWR(r.wr)}</td>
-      <td class="${pc(r.ev)}">${fmt(r.ev)}</td>
-      <td class="${pc(r.pnl)}" style="font-weight:600">${fmt(r.pnl)}</td>
-      <td class="green">${r.avgWin.toFixed(4)}$</td>
-      <td class="red">${r.avgLoss.toFixed(4)}$</td>
-      <td>${byR['TP']||0}</td><td>${byR['SL']||0}</td>
-    </tr>`;
-  }).join('') + '</tbody></table>';
-}
-
-// ── Ranking ───────────────────────────────────────────
-function renderRanking(data) {
-  const byPair = {};
-  data.forEach(t => { if(!byPair[t.symbol]) byPair[t.symbol]=[]; byPair[t.symbol].push(t); });
-  const rows = Object.entries(byPair).map(([sym,ts]) => ({ sym, fam: PAIR_FAMILY[sym]||'other', ...stats(ts) }))
-               .sort((a,b) => b.pnl-a.pnl);
-  const maxAbs = Math.max(...rows.map(r=>Math.abs(r.pnl)), 0.01);
-
-  function rankList(sorted) {
-    return sorted.map((r,i) => {
-      const color = FAMILIES[r.fam]?.color || '#94a3b8';
-      const w = Math.abs(r.pnl)/maxAbs*100;
+// ═══════════════════════════════════════════════════════════════
+// TAB: RANKING
+// ═══════════════════════════════════════════════════════════════
+function renderRank(data){
+  const byPair={};
+  data.filter(t=>t.status!=="open").forEach(t=>{if(!byPair[t.symbol])byPair[t.symbol]=[];byPair[t.symbol].push(t);});
+  const rows=Object.entries(byPair).map(([sym,ts])=>({sym,fam:PAIR_FAM[sym]||"other",...stats(ts)}))
+             .sort((a,b)=>b.pnl-a.pnl);
+  const maxAbs=Math.max(...rows.map(r=>Math.abs(r.pnl)),0.01);
+  function rankList(sorted){
+    return sorted.map((r,i)=>{
+      const c=FAMILIES[r.fam]?.color||"#6c7086";
+      const w=Math.abs(r.pnl)/maxAbs*100;
       return `<div class="rank-row">
         <div class="rank-num">#${i+1}</div>
-        <div class="rank-sym" style="color:${color}">${r.sym.replace('/USDT','')}</div>
-        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${w}%;background:${r.pnl>0?'#4ade80':'#f87171'}"></div></div>
-        <div class="rank-val ${pc(r.pnl)}">${fmt(r.pnl)}</div>
-        <div style="font-size:10px;color:#666;width:45px;text-align:right">${fmtWR(r.wr)}</div>
+        <div class="rank-sym" style="color:${c}">${r.sym.replace("/USDT","")}</div>
+        <div class="rank-bar-bg"><div class="rank-bar" style="width:${w}%;background:${r.pnl>0?"var(--green)":"var(--red)"}"></div></div>
+        <div class="rank-val" style="${clr(r.pnl)}">${fmt(r.pnl)}</div>
+        <div style="font-size:10px;color:var(--muted);width:40px;text-align:right">${fmtWR(r.wr)}</div>
+        <div style="font-size:10px;color:var(--muted);width:40px;text-align:right">${r.n}t</div>
       </div>`;
-    }).join('');
+    }).join("");
   }
-
   return `
-  <div style="display:flex;gap:36px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-      <div class="section-title" style="margin-bottom:8px">🏆 Winners</div>
-      <div class="rank-table">${rankList(rows.filter(r=>r.pnl>0))}</div>
-    </div>
-    <div>
-      <div class="section-title" style="margin-bottom:8px">💀 Losers</div>
-      <div class="rank-table">${rankList([...rows].filter(r=>r.pnl<=0).reverse())}</div>
-    </div>
+  <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:20px">
+    <div><div class="sec-title" style="margin-bottom:8px">🏆 Winners</div><div class="rank-table">${rankList(rows.filter(r=>r.pnl>0))}</div></div>
+    <div><div class="sec-title" style="margin-bottom:8px">💀 Losers</div><div class="rank-table">${rankList([...rows].filter(r=>r.pnl<=0).reverse())}</div></div>
   </div>
-  <div class="section-title" style="margin-bottom:8px">Operaciones por par</div>
-  <canvas id="pie-rank" style="max-width:320px;max-height:200px;margin-bottom:16px"></canvas>
-  <div class="section-title" style="margin-bottom:8px">Todos — ranking PnL</div>
-  <div class="rank-table">${rankList(rows)}</div>`;
+  <div class="charts-row">
+    <div class="chart-box" style="width:270px"><div class="sec-title" style="margin-bottom:8px">Operaciones por par</div><canvas id="rank-pie" style="max-height:200px"></canvas></div>
+    <div class="chart-box" style="flex:1"><div class="sec-title" style="margin-bottom:8px">PnL por par</div><canvas id="rank-bar" style="max-height:200px"></canvas></div>
+  </div>`;
 }
 
-function drawRankingChart(data) {
-  const bySym = {};
-  data.forEach(t => { bySym[t.symbol] = (bySym[t.symbol]||0)+1; });
-  const labels = Object.keys(bySym).sort((a,b)=>bySym[b]-bySym[a]);
-  const colors = labels.map(sym => FAMILIES[PAIR_FAMILY[sym]||'other']?.color || '#94a3b8');
-  const ctx = document.getElementById('pie-rank')?.getContext('2d');
-  if (ctx) new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels: labels.map(l=>l.replace('/USDT','')), datasets: [{ data: labels.map(l=>bySym[l]), backgroundColor: colors, borderColor: '#0f1117', borderWidth: 2 }] },
-    options: { plugins: { legend: { labels: { color: '#aaa', font: { size: 11 } } } }, cutout: '50%' }
-  });
+// ═══════════════════════════════════════════════════════════════
+// TAB: RAW TRADES
+// ═══════════════════════════════════════════════════════════════
+function renderRaw(data){
+  const filt=rawSearch?data.filter(t=>`${t.symbol}${t.close_reason}${t.bot_variant}${t.date}`.toLowerCase().includes(rawSearch.toLowerCase())):data;
+  const rows=filt.slice(0,500).map(t=>`<tr>
+    <td style="color:var(--muted);font-size:10px">${(t.open_time??"").slice(0,16).replace("T"," ")}</td>
+    <td style="font-weight:700">${t.symbol.replace("/USDT","")}</td>
+    <td><span class="badge b-${t.fam||"other"}">${FAMILIES[t.fam||"other"]?.label||"?"}</span></td>
+    <td style="font-size:10px;color:var(--muted)">${t.bot_variant||""}</td>
+    <td>${t.side||t.direction||"—"}</td>
+    <td class="${t.close_reason==="TP"?"green":t.close_reason==="SL"?"red":""}">${t.close_reason||t.status||"—"}</td>
+    <td style="${clr(t.pnl)};font-weight:700">${fmt(t.pnl)}</td>
+    <td style="color:var(--muted);font-size:10px">${(t.close_time??"").slice(11,16)}</td>
+    <td style="color:var(--muted);font-size:10px">${t.hour_utc??""}</td>
+    <td style="color:var(--muted);font-size:10px">${t.session||t.macro_trend||""}</td>
+  </tr>`).join("");
+  return `
+  <input class="search-bar" placeholder="Buscar por par, razón, variante, fecha…" value="${rawSearch}" oninput="rawSearch=this.value;render()">
+  <div style="font-size:10px;color:var(--muted);margin-bottom:8px">${filt.length} trades ${filt.length>500?" (mostrando 500)":""}</div>
+  <table class="data"><thead><tr>
+    <th>Apertura</th><th>Par</th><th>Familia</th><th>Bot</th><th>Dir</th>
+    <th>Cierre</th><th>PnL</th><th>Out</th><th>H(UTC)</th><th>Sesión</th>
+  </tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAW CHARTS (post-render)
+// ═══════════════════════════════════════════════════════════════
+function drawCharts(data){
+  const closed=data.filter(t=>t.status!=="open");
+  const baseCap=parseFloat(document.getElementById("base-cap").value)||200;
+
+  // Equity curve
+  if(document.getElementById("equity-chart")){
+    const sorted=[...closed].sort((a,b)=>(a.open_time??"").localeCompare(b.open_time??"")||0);
+    let cum=baseCap; const pts=sorted.map(t=>{cum+=t.pnl;return {x:(t.open_time??"").slice(0,10),y:+cum.toFixed(3)};});
+    charts["equity"]=new Chart(document.getElementById("equity-chart").getContext("2d"),{
+      type:"line",
+      data:{datasets:[{data:pts,borderColor:"#cba6f7",backgroundColor:"rgba(203,166,247,0.1)",fill:true,tension:.3,pointRadius:0,borderWidth:1.5}]},
+      options:{plugins:{legend:{display:false}},scales:{
+        x:{type:"category",ticks:{color:"#6c7086",maxTicksLimit:7,font:{size:10}},grid:{color:"#1e2030"}},
+        y:{ticks:{color:"#6c7086",callback:v=>v+"$",font:{size:10}},grid:{color:"#1e2030"}}
+      }}
+    });
+  }
+
+  // Hourly bar
+  if(document.getElementById("hour-chart")){
+    const hourPnl=Array(24).fill(0),hourN=Array(24).fill(0);
+    closed.forEach(t=>{const h=t.hour_utc??0;hourPnl[h]+=t.pnl;hourN[h]++;});
+    charts["hour"]=new Chart(document.getElementById("hour-chart").getContext("2d"),{
+      type:"bar",
+      data:{labels:Array.from({length:24},(_,i)=>i+"h"),datasets:[{
+        data:hourPnl.map(v=>+v.toFixed(3)),
+        backgroundColor:hourPnl.map(v=>v>=0?"rgba(166,227,161,0.6)":"rgba(243,139,168,0.6)"),
+        borderRadius:3
+      }]},
+      options:{plugins:{legend:{display:false}},scales:{
+        x:{ticks:{color:"#6c7086",font:{size:9}},grid:{color:"#1e2030"}},
+        y:{ticks:{color:"#6c7086",callback:v=>v+"$",font:{size:9}},grid:{color:"#1e2030"}}
+      }}
+    });
+  }
+
+  // Comparativa charts
+  if(document.getElementById("comp-chart")){
+    const dates=[...new Set(closed.map(t=>t.date))].sort();
+    const groups={oco:"#a6e3a1",trend:"#94e2d5",sweep:"#fab387",sweep_btc:"#f9e2af"};
+    const datasets=Object.entries(groups).map(([g,color])=>({
+      label:g==="sweep_btc"?"SWEEP BTC":g==="sweep"?"SWEEP ADA+BNB":g.toUpperCase(),
+      data:dates.map(d=>+closed.filter(t=>t.date===d&&t.vgroup===g).reduce((s,t)=>s+t.pnl,0).toFixed(3)),
+      borderColor:color,backgroundColor:color+"22",fill:false,tension:.3,pointRadius:2,borderWidth:1.5
+    })).filter(ds=>ds.data.some(v=>v!==0));
+    charts["comp"]=new Chart(document.getElementById("comp-chart").getContext("2d"),{
+      type:"line",data:{labels:dates,datasets},
+      options:{plugins:{legend:{labels:{color:"#cdd6f4",font:{size:10}}}},
+        scales:{x:{ticks:{color:"#6c7086",font:{size:10}},grid:{color:"#1e2030"}},
+                y:{ticks:{color:"#6c7086",callback:v=>v+"$",font:{size:10}},grid:{color:"#1e2030"}}}}
+    });
+  }
+  if(document.getElementById("comp-pie")){
+    const gs={oco:0,trend:0,sweep:0,sweep_btc:0};
+    closed.forEach(t=>{const g=t.vgroup||"oco";if(gs[g]!==undefined)gs[g]++;});
+    charts["cpie"]=new Chart(document.getElementById("comp-pie").getContext("2d"),{
+      type:"doughnut",
+      data:{labels:["OCO","TREND","SWEEP ADA+BNB","SWEEP BTC"],
+            datasets:[{data:Object.values(gs),backgroundColor:["#a6e3a1","#94e2d5","#fab387","#f9e2af"],borderColor:"#0c0d12",borderWidth:2}]},
+      options:{plugins:{legend:{labels:{color:"#cdd6f4",font:{size:11}}}},cutout:"55%"}
+    });
+  }
+
+  // Ranking charts
+  if(document.getElementById("rank-pie")){
+    const bySym={};
+    closed.forEach(t=>{bySym[t.symbol]=(bySym[t.symbol]||0)+1;});
+    const labels=Object.keys(bySym).sort((a,b)=>bySym[b]-bySym[a]);
+    const colors=labels.map(sym=>FAMILIES[PAIR_FAM[sym]||"other"]?.color||"#6c7086");
+    charts["rpie"]=new Chart(document.getElementById("rank-pie").getContext("2d"),{
+      type:"doughnut",
+      data:{labels:labels.map(l=>l.replace("/USDT","")),datasets:[{data:labels.map(l=>bySym[l]),backgroundColor:colors,borderColor:"#0c0d12",borderWidth:2}]},
+      options:{plugins:{legend:{labels:{color:"#cdd6f4",font:{size:10}}}},cutout:"50%"}
+    });
+  }
+  if(document.getElementById("rank-bar")){
+    const byPair={};
+    closed.forEach(t=>{byPair[t.symbol]=(byPair[t.symbol]||0)+t.pnl;});
+    const labels=Object.keys(byPair).sort((a,b)=>byPair[b]-byPair[a]);
+    charts["rbar"]=new Chart(document.getElementById("rank-bar").getContext("2d"),{
+      type:"bar",
+      data:{labels:labels.map(l=>l.replace("/USDT","")),datasets:[{
+        data:labels.map(l=>+byPair[l].toFixed(3)),
+        backgroundColor:labels.map(l=>byPair[l]>=0?"rgba(166,227,161,0.7)":"rgba(243,139,168,0.7)"),
+        borderRadius:4
+      }]},
+      options:{plugins:{legend:{display:false}},scales:{
+        x:{ticks:{color:"#6c7086",font:{size:10}},grid:{color:"#1e2030"}},
+        y:{ticks:{color:"#6c7086",callback:v=>v+"$",font:{size:10}},grid:{color:"#1e2030"}}
+      }}
+    });
+  }
 }
 </script>
 </body>
