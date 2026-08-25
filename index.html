@@ -212,6 +212,7 @@ const LS_KEY = "oco_dashboard_v2";
 const FAMILIES = {
   prod: { label:"Prod",  color:"#a6e3a1", pairs:["ADA/USDT","BNB/USDT"] },
   lab1: { label:"Lab 1", color:"#89b4fa", pairs:["TRX/USDT","SOL/USDT","ETH/USDT","LTC/USDT"] },
+  lab3: { label:"Lab 3", color:"#74c7ec", pairs:["ARB/USDT","INJ/USDT","OP/USDT","NEAR/USDT"] },
   meme: { label:"Meme",  color:"#cba6f7", pairs:["SHIB/USDT","PEPE/USDT","1000SHIB/USDT","1000PEPE/USDT"] },
   lab2: { label:"Lab 2", color:"#fab387", pairs:["AVAX/USDT","DOGE/USDT"] },
   btc:  { label:"BTC",   color:"#f9e2af", pairs:["BTC/USDT"] },
@@ -795,15 +796,23 @@ function renderRank(data){
   data.filter(t=>t.status!=="open").forEach(t=>{if(!byPair[t.symbol])byPair[t.symbol]=[];byPair[t.symbol].push(t);});
   const rows=Object.entries(byPair).map(([sym,ts])=>({sym,fam:PAIR_FAM[sym]||"other",...stats(ts)}))
              .sort((a,b)=>b.pnl-a.pnl);
-  const maxAbs=Math.max(...rows.map(r=>Math.abs(r.pnl)),0.01);
-  function rankList(sorted){
+  const winners=rows.filter(r=>r.pnl>0);
+  const losers=[...rows].filter(r=>r.pnl<=0).reverse();
+  const totalWin=winners.reduce((s,r)=>s+r.pnl,0);
+  const totalLoss=losers.reduce((s,r)=>s+r.pnl,0);
+  const maxAbsW=Math.max(...winners.map(r=>Math.abs(r.pnl)),0.01);
+  const maxAbsL=Math.max(...losers.map(r=>Math.abs(r.pnl)),0.01);
+  function rankList(sorted,maxA,positive){
     return sorted.map((r,i)=>{
       const c=FAMILIES[r.fam]?.color||"#6c7086";
-      const w=Math.abs(r.pnl)/maxAbs*100;
+      const w=Math.abs(r.pnl)/maxA*100;
+      // intensidad de color según magnitud relativa
+      const alpha=0.35+0.65*(Math.abs(r.pnl)/maxA);
+      const barColor=positive?`rgba(166,227,161,${alpha})`:`rgba(243,139,168,${alpha})`;
       return `<div class="rank-row">
         <div class="rank-num">#${i+1}</div>
-        <div class="rank-sym" style="color:${c}">${r.sym.replace("/USDT","")}</div>
-        <div class="rank-bar-bg"><div class="rank-bar" style="width:${w}%;background:${r.pnl>0?"var(--green)":"var(--red)"}"></div></div>
+        <div class="rank-sym" style="color:${c}">${r.sym.replace("/USDT","").replace("1000","1K")}</div>
+        <div class="rank-bar-bg"><div class="rank-bar" style="width:${w}%;background:${barColor}"></div></div>
         <div class="rank-val" style="${clr(r.pnl)}">${fmt(r.pnl)}</div>
         <div style="font-size:10px;color:var(--muted);width:40px;text-align:right">${fmtWR(r.wr)}</div>
         <div style="font-size:10px;color:var(--muted);width:40px;text-align:right">${r.n}t</div>
@@ -812,8 +821,18 @@ function renderRank(data){
   }
   return `
   <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:20px">
-    <div><div class="sec-title" style="margin-bottom:8px">🏆 Winners</div><div class="rank-table">${rankList(rows.filter(r=>r.pnl>0))}</div></div>
-    <div><div class="sec-title" style="margin-bottom:8px">💀 Losers</div><div class="rank-table">${rankList([...rows].filter(r=>r.pnl<=0).reverse())}</div></div>
+    <div>
+      <div class="sec-title" style="margin-bottom:8px">🏆 Winners
+        <span style="font-size:12px;font-weight:700;color:var(--green);margin-left:8px">${fmt(totalWin)}</span>
+      </div>
+      <div class="rank-table">${rankList(winners,maxAbsW,true)}</div>
+    </div>
+    <div>
+      <div class="sec-title" style="margin-bottom:8px">💀 Losers
+        <span style="font-size:12px;font-weight:700;color:var(--red);margin-left:8px">${fmt(totalLoss)}</span>
+      </div>
+      <div class="rank-table">${rankList(losers,maxAbsL,false)}</div>
+    </div>
   </div>
   <div class="charts-row">
     <div class="chart-box" style="width:270px"><div class="sec-title" style="margin-bottom:8px">Operaciones por par</div><canvas id="rank-pie" style="max-height:200px"></canvas></div>
@@ -929,16 +948,20 @@ function drawCharts(data){
     const byPair={};
     closed.forEach(t=>{byPair[t.symbol]=(byPair[t.symbol]||0)+t.pnl;});
     const labels=Object.keys(byPair).sort((a,b)=>byPair[b]-byPair[a]);
+    const maxAbsBar=Math.max(...Object.values(byPair).map(v=>Math.abs(v)),0.001);
     charts["rbar"]=new Chart(document.getElementById("rank-bar").getContext("2d"),{
       type:"bar",
-      data:{labels:labels.map(l=>l.replace("/USDT","")),datasets:[{
+      data:{labels:labels.map(l=>l.replace("/USDT","").replace("1000","1K")),datasets:[{
         data:labels.map(l=>+byPair[l].toFixed(3)),
-        backgroundColor:labels.map(l=>byPair[l]>=0?"rgba(166,227,161,0.7)":"rgba(243,139,168,0.7)"),
+        backgroundColor:labels.map(l=>{
+          const alpha=0.3+0.7*(Math.abs(byPair[l])/maxAbsBar);
+          return byPair[l]>=0?`rgba(166,227,161,${alpha.toFixed(2)})`:`rgba(243,139,168,${alpha.toFixed(2)})`;
+        }),
         borderRadius:4
       }]},
       options:{plugins:{legend:{display:false}},scales:{
         x:{ticks:{color:"#6c7086",font:{size:10}},grid:{color:"#1e2030"}},
-        y:{ticks:{color:"#6c7086",callback:v=>v+"$",font:{size:10}},grid:{color:"#1e2030"}}
+        y:{ticks:{color:"#6c7086",callback:v=>(+v).toFixed(3)+"$",font:{size:10}},grid:{color:"#1e2030"}}
       }}
     });
   }
