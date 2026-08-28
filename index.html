@@ -3,300 +3,255 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CR Bot — v1 vs v2</title>
+<title>CR Bot v3 — Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', monospace; padding: 20px; }
   h1 { color: #fff; font-size: 1.3rem; margin-bottom: 4px; }
-  .subtitle { color: #666; font-size: 0.8rem; margin-bottom: 20px; }
+  .subtitle { color: #555; font-size: 0.78rem; margin-bottom: 20px; }
 
-  .grid-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 22px; }
   .kpi { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px; text-align: center; }
-  .kpi .label { font-size: 0.7rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .kpi .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
   .kpi .val { font-size: 1.5rem; font-weight: 700; }
-  .kpi .sub { font-size: 0.7rem; color: #555; margin-top: 4px; }
+  .kpi .sub { font-size: 0.68rem; color: #444; margin-top: 4px; }
   .green { color: #00e676; } .red { color: #ff5252; } .blue { color: #40c4ff; } .gold { color: #ffd740; }
 
-  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
-  .section h2 { font-size: 0.85rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 18px; }
+  .section h2 { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
 
   table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  th { color: #555; font-weight: 500; text-align: right; padding: 6px 10px; border-bottom: 1px solid #222; }
+  th { color: #444; font-weight: 500; text-align: right; padding: 6px 10px; border-bottom: 1px solid #222; }
   th:first-child { text-align: left; }
-  td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #1e1e1e; }
-  td:first-child { text-align: left; font-weight: 600; color: #fff; }
-  tr:hover { background: #222; }
+  td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #1c1c1c; }
+  td:first-child { text-align: left; color: #fff; font-weight: 600; }
+  tr:hover td { background: #222; }
 
-  .badge { display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-  .v1 { background: #1a3a5c; color: #40c4ff; }
-  .v2 { background: #1a3d2a; color: #00e676; }
+  .charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 680px) { .charts-2 { grid-template-columns: 1fr; } }
+  .chart-wrap { position: relative; height: 240px; }
 
-  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 700px) { .charts { grid-template-columns: 1fr; } }
-  .chart-box { position: relative; height: 260px; }
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.68rem; font-weight: 700; }
+  .tag-tp  { background:#0d2a1a; color:#00e676; }
+  .tag-sl  { background:#2a0d0d; color:#ff5252; }
+  .tag-to  { background:#2a2500; color:#ffd740; }
+  .tag-def { background:#1a1a2a; color:#aaa; }
 
-  .refresh { color: #444; font-size: 0.72rem; text-align: right; margin-top: 12px; }
-  .loading { color: #555; text-align: center; padding: 40px; }
-
-  .winner { background: #1a2a1a; }
-  .diff-positive { color: #00e676; }
-  .diff-negative { color: #ff5252; }
+  .footer { color: #333; font-size: 0.7rem; text-align: right; margin-top: 10px; }
 </style>
 </head>
 <body>
 
-<h1>CR Bot — v1 vs v2</h1>
-<div class="subtitle" id="lastUpdate">Cargando...</div>
+<h1>CR Bot v3</h1>
+<div class="subtitle" id="sub">R:R 1:1 | tp_mult=1.5 sl_mult=1.5 | Score: RSI + Mechas + Momentum + Volumen</div>
 
-<div class="grid-top" id="kpiRow"></div>
+<div class="kpi-row" id="kpis"></div>
 
 <div class="section">
-  <h2>Por par — comparativo</h2>
-  <table id="pairTable">
-    <thead>
-      <tr>
-        <th>Par</th>
-        <th>Trades v1</th><th>WR% v1</th><th>PnL v1</th>
-        <th>Trades v2</th><th>WR% v2</th><th>PnL v2</th>
-        <th>Δ PnL</th>
-      </tr>
-    </thead>
-    <tbody id="pairBody"><tr><td colspan="8" class="loading">Cargando...</td></tr></tbody>
+  <h2>Por par</h2>
+  <table>
+    <thead><tr>
+      <th>Par</th><th>Trades</th><th>W</th><th>L</th><th>WR%</th>
+      <th>PnL</th><th>Mejor TP</th><th>Peor SL</th><th>Open</th>
+    </tr></thead>
+    <tbody id="pairBody"></tbody>
   </table>
 </div>
 
 <div class="section">
-  <h2>Evolución PnL acumulado</h2>
-  <div class="chart-box"><canvas id="pnlChart"></canvas></div>
+  <h2>PnL acumulado</h2>
+  <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
 </div>
 
-<div class="charts">
+<div class="charts-2">
   <div class="section">
     <h2>Win Rate por par</h2>
-    <div class="chart-box"><canvas id="wrChart"></canvas></div>
+    <div class="chart-wrap"><canvas id="wrChart"></canvas></div>
   </div>
   <div class="section">
-    <h2>Distribución closes</h2>
-    <div class="chart-box"><canvas id="reasonChart"></canvas></div>
+    <h2>Closes: TP / SL / TIMEOUT</h2>
+    <div class="chart-wrap"><canvas id="reasonChart"></canvas></div>
   </div>
 </div>
 
 <div class="section">
-  <h2>Últimos 20 trades</h2>
-  <table id="recentTable">
-    <thead>
-      <tr>
-        <th>Hora UTC</th><th>Par</th><th>Ver</th><th>Lado</th>
-        <th>Razón</th><th>PnL</th><th>Vela cierre</th>
-      </tr>
-    </thead>
-    <tbody id="recentBody"><tr><td colspan="7" class="loading">Cargando...</td></tr></tbody>
+  <h2>Vela de cierre — análisis</h2>
+  <table>
+    <thead><tr>
+      <th>Tipo vela</th><th>Trades</th><th>TP</th><th>SL</th><th>WR%</th>
+    </tr></thead>
+    <tbody id="candleBody"></tbody>
   </table>
 </div>
 
-<div class="refresh" id="refreshLine">— actualiza cada 30s —</div>
+<div class="section">
+  <h2>Últimos 30 trades</h2>
+  <table>
+    <thead><tr>
+      <th>Hora</th><th>Par</th><th>Lado</th><th>Razón</th>
+      <th>PnL</th><th>RSI</th><th>Score L/S</th><th>Vela cierre</th>
+    </tr></thead>
+    <tbody id="recentBody"></tbody>
+  </table>
+</div>
+
+<div class="footer" id="footer">—</div>
 
 <script>
-const SUPABASE_URL = 'https://xjznnlzvurfwrhomkxed.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SB_URL = 'https://xjznnlzvurfwrhomkxed.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc';
+const sb = supabase.createClient(SB_URL, SB_KEY);
 
 const PAIRS = ['1000PEPE/USDT','1000SHIB/USDT','XRP/USDT','1000BONK/USDT','NOT/USDT','ADA/USDT'];
-const SHORT_NAME = s => s.replace('1000','').replace('/USDT','');
+const SN = s => s.replace('1000','').replace('/USDT','');
+const fmt = (n, d=2) => n == null ? '—' : (n>=0?'+':'')+Number(n).toFixed(d);
+const pct = (w,t) => t ? (w/t*100).toFixed(1)+'%' : '—';
 
-let pnlChart = null, wrChart = null, reasonChart = null;
+let charts = {};
 
-function fmt(n, decimals=2) {
-  if (n == null) return '—';
-  return (n >= 0 ? '+' : '') + Number(n).toFixed(decimals);
-}
-function fmtWR(wins, total) {
-  if (!total) return '—';
-  return (wins/total*100).toFixed(1)+'%';
+function st(arr) {
+  const closed = arr.filter(t => t.status==='closed');
+  const wins   = closed.filter(t => (t.pnl||0) > 0);
+  const losses = closed.filter(t => (t.pnl||0) <= 0);
+  const pnl    = closed.reduce((s,t) => s+(t.pnl||0), 0);
+  const best   = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
+  const worst  = closed.length ? Math.min(...closed.map(t=>t.pnl||0)) : 0;
+  return { closed: closed.length, wins: wins.length, losses: losses.length, pnl, best, worst,
+           wr: closed.length ? wins.length/closed.length*100 : 0 };
 }
 
 async function load() {
   const { data, error } = await sb
     .from('trades')
     .select('*')
-    .in('bot_variant', ['cr_paper','cr_v2_paper'])
+    .in('bot_variant', ['cr_v3_paper','cr_paper','cr_v2_paper'])
     .order('open_time', { ascending: true });
 
-  if (error) { console.error(error); return; }
+  if (error || !data) return;
 
-  const closed = data.filter(t => t.status === 'closed');
-  const v1 = closed.filter(t => t.bot_variant === 'cr_paper');
-  const v2 = closed.filter(t => t.bot_variant === 'cr_v2_paper');
+  const all   = data;
+  const open  = all.filter(t => t.status === 'open');
+  const closed= all.filter(t => t.status === 'closed');
+  const s     = st(all);
 
-  renderKPIs(v1, v2);
-  renderPairTable(v1, v2);
-  renderPnlChart(v1, v2);
-  renderWRChart(v1, v2);
-  renderReasonChart([...v1, ...v2]);
-  renderRecent(data);
+  // KPIs
+  document.getElementById('kpis').innerHTML = [
+    { l:'Trades cerrados', v: s.closed, c:'blue', s:`${s.wins}W / ${s.losses}L` },
+    { l:'Win Rate',        v: pct(s.wins, s.closed), c: s.wr>=50?'green':'red', s:'' },
+    { l:'PnL neto',        v: fmt(s.pnl)+' U', c: s.pnl>=0?'green':'red', s:'' },
+    { l:'Posiciones abiertas', v: open.length, c:'gold', s: open.map(t=>SN(t.symbol||'')).join(', ')||'—' },
+    { l:'Mejor TP',        v: fmt(s.best)+' U', c:'green', s:'' },
+    { l:'Peor SL',         v: fmt(s.worst)+' U', c:'red', s:'' },
+  ].map(k=>`<div class="kpi"><div class="label">${k.l}</div>
+    <div class="val ${k.c}">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
 
-  document.getElementById('lastUpdate').textContent =
-    `Actualizado: ${new Date().toLocaleTimeString()} UTC | v1: ${v1.length} trades | v2: ${v2.length} trades`;
-}
-
-function stats(trades) {
-  const wins   = trades.filter(t => (t.pnl||0) > 0).length;
-  const total  = trades.length;
-  const pnl    = trades.reduce((s,t) => s + (t.pnl||0), 0);
-  return { wins, total, pnl, wr: total ? wins/total*100 : 0 };
-}
-
-function renderKPIs(v1, v2) {
-  const s1 = stats(v1), s2 = stats(v2);
-  const kpis = [
-    { label:'Trades v1', val: s1.total, cls:'blue', sub:`${s1.wins}W / ${s1.total-s1.wins}L` },
-    { label:'WR v1',     val: s1.total ? s1.wr.toFixed(1)+'%' : '—', cls: s1.wr>=50?'green':'red', sub:'' },
-    { label:'PnL v1',    val: fmt(s1.pnl)+' U', cls: s1.pnl>=0?'green':'red', sub:'' },
-    { label:'Trades v2', val: s2.total, cls:'gold', sub:`${s2.wins}W / ${s2.total-s2.wins}L` },
-    { label:'WR v2',     val: s2.total ? s2.wr.toFixed(1)+'%' : '—', cls: s2.wr>=50?'green':'red', sub:'' },
-    { label:'PnL v2',    val: fmt(s2.pnl)+' U', cls: s2.pnl>=0?'green':'red', sub:'' },
-    { label:'Δ PnL v2-v1', val: fmt(s2.pnl-s1.pnl)+' U', cls: (s2.pnl-s1.pnl)>=0?'green':'red', sub:'' },
-  ];
-  document.getElementById('kpiRow').innerHTML = kpis.map(k =>
-    `<div class="kpi"><div class="label">${k.label}</div>
-     <div class="val ${k.cls}">${k.val}</div>
-     <div class="sub">${k.sub}</div></div>`
-  ).join('');
-}
-
-function renderPairTable(v1, v2) {
-  const rows = PAIRS.map(sym => {
-    const p1 = v1.filter(t => t.symbol === sym);
-    const p2 = v2.filter(t => t.symbol === sym);
-    const s1 = stats(p1), s2 = stats(p2);
-    const delta = s2.pnl - s1.pnl;
-    const winner = delta > 0 ? 'v2' : delta < 0 ? 'v1' : '';
-    return { sym, s1, s2, delta, winner };
-  });
-
-  document.getElementById('pairBody').innerHTML = rows.map(r => `
-    <tr class="${r.winner ? 'winner':''}">
-      <td>${SHORT_NAME(r.sym)}</td>
-      <td>${r.s1.total}</td>
-      <td class="${r.s1.wr>=50?'green':'red'}">${fmtWR(r.s1.wins,r.s1.total)}</td>
-      <td class="${r.s1.pnl>=0?'green':'red'}">${fmt(r.s1.pnl)}</td>
-      <td>${r.s2.total}</td>
-      <td class="${r.s2.wr>=50?'green':'red'}">${fmtWR(r.s2.wins,r.s2.total)}</td>
-      <td class="${r.s2.pnl>=0?'green':'red'}">${fmt(r.s2.pnl)}</td>
-      <td class="${r.delta>=0?'diff-positive':'diff-negative'}">${fmt(r.delta)}</td>
-    </tr>`
-  ).join('');
-}
-
-function cumPnl(trades) {
-  // Returns [{x: time_str, y: cumulative_pnl}]
-  let cum = 0;
-  return trades
-    .filter(t => t.close_time)
-    .sort((a,b) => new Date(a.close_time)-new Date(b.close_time))
-    .map(t => { cum += (t.pnl||0); return { x: t.close_time.slice(11,16), y: +cum.toFixed(4) }; });
-}
-
-function renderPnlChart(v1, v2) {
-  const ctx = document.getElementById('pnlChart').getContext('2d');
-  if (pnlChart) pnlChart.destroy();
-  pnlChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      datasets: [
-        { label:'v1', data: cumPnl(v1), borderColor:'#40c4ff', backgroundColor:'rgba(64,196,255,.08)',
-          tension:.3, pointRadius:2, fill:true },
-        { label:'v2', data: cumPnl(v2), borderColor:'#00e676', backgroundColor:'rgba(0,230,118,.08)',
-          tension:.3, pointRadius:2, fill:true },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      parsing: false,
-      scales: {
-        x: { type:'category', ticks:{ color:'#555', maxTicksLimit:8 }, grid:{ color:'#1e1e1e' } },
-        y: { ticks:{ color:'#555' }, grid:{ color:'#1e1e1e' } }
-      },
-      plugins: { legend:{ labels:{ color:'#888' } } }
-    }
-  });
-}
-
-function renderWRChart(v1, v2) {
-  const ctx = document.getElementById('wrChart').getContext('2d');
-  if (wrChart) wrChart.destroy();
-  const labels = PAIRS.map(SHORT_NAME);
-  const wr1 = PAIRS.map(s => { const p=v1.filter(t=>t.symbol===s); return p.length ? +(stats(p).wr.toFixed(1)) : 0; });
-  const wr2 = PAIRS.map(s => { const p=v2.filter(t=>t.symbol===s); return p.length ? +(stats(p).wr.toFixed(1)) : 0; });
-  wrChart = new Chart(ctx, {
-    type:'bar',
-    data: {
-      labels,
-      datasets: [
-        { label:'v1', data:wr1, backgroundColor:'rgba(64,196,255,.5)', borderColor:'#40c4ff', borderWidth:1 },
-        { label:'v2', data:wr2, backgroundColor:'rgba(0,230,118,.5)', borderColor:'#00e676', borderWidth:1 },
-      ]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      scales: {
-        x: { ticks:{ color:'#555' }, grid:{ color:'#1e1e1e' } },
-        y: { min:0, max:100, ticks:{ color:'#555', callback: v=>v+'%' }, grid:{ color:'#1e1e1e' } }
-      },
-      plugins: { legend:{ labels:{ color:'#888' } } }
-    }
-  });
-}
-
-function renderReasonChart(all) {
-  const ctx = document.getElementById('reasonChart').getContext('2d');
-  if (reasonChart) reasonChart.destroy();
-  const counts = {};
-  all.forEach(t => { const r = t.close_reason||'?'; counts[r] = (counts[r]||0)+1; });
-  const labels = Object.keys(counts);
-  const colorMap = { TP:'#00e676', SL:'#ff5252', TIMEOUT:'#ffd740', '?':'#555' };
-  reasonChart = new Chart(ctx, {
-    type:'doughnut',
-    data: {
-      labels,
-      datasets:[{ data: labels.map(l=>counts[l]),
-        backgroundColor: labels.map(l=>colorMap[l]||'#888'),
-        borderWidth:1, borderColor:'#1a1a1a' }]
-    },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: { legend:{ position:'right', labels:{ color:'#888', font:{ size:11 } } } }
-    }
-  });
-}
-
-function renderRecent(all) {
-  const recent = all
-    .filter(t => t.status==='closed' && t.close_time)
-    .sort((a,b) => new Date(b.close_time)-new Date(a.close_time))
-    .slice(0,20);
-
-  document.getElementById('recentBody').innerHTML = recent.map(t => {
-    const pnlCls = (t.pnl||0)>=0?'green':'red';
-    const ver = t.bot_variant==='cr_paper' ? '<span class="badge v1">v1</span>' : '<span class="badge v2">v2</span>';
-    const candle = t.close_candle_type || '—';
-    const reason = t.close_reason || '—';
-    const reasonCls = reason==='TP'?'green':reason==='SL'?'red':'gold';
+  // Pair table
+  document.getElementById('pairBody').innerHTML = PAIRS.map(sym => {
+    const p   = all.filter(t => t.symbol === sym);
+    const po  = p.filter(t => t.status==='open').length;
+    const s   = st(p);
+    const wrc = s.wr>=50?'green':'red';
+    const pc  = s.pnl>=0?'green':'red';
     return `<tr>
-      <td>${(t.close_time||'').slice(11,16)}</td>
-      <td>${SHORT_NAME(t.symbol||'')}</td>
-      <td>${ver}</td>
-      <td>${t.side||'—'}</td>
-      <td class="${reasonCls}">${reason}</td>
-      <td class="${pnlCls}">${fmt(t.pnl)}</td>
-      <td style="color:#666;font-size:.75rem">${candle}</td>
+      <td>${SN(sym)}</td><td>${s.closed}</td>
+      <td class="green">${s.wins}</td><td class="red">${s.losses}</td>
+      <td class="${wrc}">${pct(s.wins,s.closed)}</td>
+      <td class="${pc}">${fmt(s.pnl)}</td>
+      <td class="green">${fmt(s.best)}</td>
+      <td class="red">${fmt(s.worst)}</td>
+      <td class="${po?'gold':''}">${po||'—'}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="7" class="loading">Sin trades cerrados aún</td></tr>';
+  }).join('');
+
+  // PnL chart
+  let cum = 0;
+  const pts = closed
+    .sort((a,b) => new Date(a.close_time)-new Date(b.close_time))
+    .map(t => { cum += (t.pnl||0); return { x: (t.close_time||'').slice(11,16), y: +cum.toFixed(4) }; });
+  if (charts.pnl) charts.pnl.destroy();
+  charts.pnl = new Chart(document.getElementById('pnlChart').getContext('2d'), {
+    type:'line',
+    data:{ datasets:[{ label:'PnL acumulado', data: pts, borderColor: cum>=0?'#00e676':'#ff5252',
+      backgroundColor: cum>=0?'rgba(0,230,118,.07)':'rgba(255,82,82,.07)',
+      tension:.3, pointRadius:2, fill:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, parsing:false,
+      scales:{ x:{type:'category',ticks:{color:'#555',maxTicksLimit:10},grid:{color:'#1e1e1e'}},
+               y:{ticks:{color:'#555'},grid:{color:'#1e1e1e'}} },
+      plugins:{ legend:{display:false} } }
+  });
+
+  // WR by pair
+  const wrVals = PAIRS.map(s => { const p=all.filter(t=>t.symbol===s); return +st(p).wr.toFixed(1); });
+  if (charts.wr) charts.wr.destroy();
+  charts.wr = new Chart(document.getElementById('wrChart').getContext('2d'), {
+    type:'bar',
+    data:{ labels: PAIRS.map(SN),
+      datasets:[{ data: wrVals,
+        backgroundColor: wrVals.map(v=>v>=50?'rgba(0,230,118,.5)':'rgba(255,82,82,.5)'),
+        borderColor:     wrVals.map(v=>v>=50?'#00e676':'#ff5252'), borderWidth:1 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ticks:{color:'#555'},grid:{color:'#1e1e1e'}},
+               y:{min:0,max:100,ticks:{color:'#555',callback:v=>v+'%'},grid:{color:'#1e1e1e'}} },
+      plugins:{ legend:{display:false} } }
+  });
+
+  // Reason donut
+  const reasons = {};
+  closed.forEach(t => { const r=t.close_reason||'?'; reasons[r]=(reasons[r]||0)+1; });
+  const rlabels = Object.keys(reasons);
+  const rcolors = { TP:'#00e676', SL:'#ff5252', TIMEOUT:'#ffd740', WEAK_ENTRY:'#aa88ff', '?':'#555' };
+  if (charts.reason) charts.reason.destroy();
+  charts.reason = new Chart(document.getElementById('reasonChart').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels: rlabels,
+      datasets:[{ data: rlabels.map(l=>reasons[l]),
+        backgroundColor: rlabels.map(l=>rcolors[l]||'#888'), borderWidth:1, borderColor:'#1a1a1a' }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'right', labels:{ color:'#888', font:{size:11} } } } }
+  });
+
+  // Candle close analysis
+  const ctypes = {};
+  closed.forEach(t => {
+    const ct = t.close_candle_type || 'UNKNOWN';
+    if (!ctypes[ct]) ctypes[ct] = { total:0, tp:0, sl:0 };
+    ctypes[ct].total++;
+    if (t.close_reason==='TP') ctypes[ct].tp++;
+    if (t.close_reason==='SL') ctypes[ct].sl++;
+  });
+  document.getElementById('candleBody').innerHTML =
+    Object.entries(ctypes).sort((a,b)=>b[1].total-a[1].total).map(([ct,v]) =>
+      `<tr><td>${ct}</td><td>${v.total}</td>
+       <td class="green">${v.tp}</td><td class="red">${v.sl}</td>
+       <td class="${v.total&&v.tp/v.total>=.5?'green':'red'}">${pct(v.tp,v.total)}</td>
+      </tr>`
+    ).join('') || '<tr><td colspan="5" style="color:#444;text-align:center">Sin datos</td></tr>';
+
+  // Recent 30
+  const recent = [...all].filter(t=>t.status==='closed')
+    .sort((a,b)=>new Date(b.close_time)-new Date(a.close_time)).slice(0,30);
+  const tagMap = { TP:'tag-tp', SL:'tag-sl', TIMEOUT:'tag-to' };
+  document.getElementById('recentBody').innerHTML = recent.map(t => {
+    const pc = (t.pnl||0)>=0?'green':'red';
+    const r  = t.close_reason||'?';
+    return `<tr>
+      <td style="color:#555">${(t.close_time||'').slice(11,16)}</td>
+      <td>${SN(t.symbol||'')}</td>
+      <td>${t.side==='BUY'?'<span style="color:#00e676">LONG</span>':'<span style="color:#ff5252">SHORT</span>'}</td>
+      <td><span class="tag ${tagMap[r]||'tag-def'}">${r}</span></td>
+      <td class="${pc}">${fmt(t.pnl)}</td>
+      <td style="color:#666">${t.entry_rsi!=null?Number(t.entry_rsi).toFixed(1):'—'}</td>
+      <td style="color:#666;font-size:.72rem">${t.entry_long_score!=null?`L${t.entry_long_score}/S${t.entry_short_score}`:'—'}</td>
+      <td style="color:#555;font-size:.72rem">${t.close_candle_type||'—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:#444;text-align:center;padding:20px">Sin trades cerrados</td></tr>';
+
+  document.getElementById('footer').textContent =
+    `Actualizado ${new Date().toLocaleTimeString()} | ${closed.length} cerrados | ${open.length} abiertos | refresca en 30s`;
 }
 
-// Init
 load();
 setInterval(load, 30000);
 </script>
