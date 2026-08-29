@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CR Bot — LIVE Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', monospace; padding: 20px; }
+  h1 { color: #fff; font-size: 1.3rem; margin-bottom: 4px; }
+  .subtitle { color: #555; font-size: 0.75rem; margin-bottom: 18px; }
+
+  .live-badge { display:inline-block; background:#2a0000; color:#ff5252; border:1px solid #ff525244;
+                padding:2px 10px; border-radius:4px; font-size:.7rem; font-weight:700;
+                letter-spacing:2px; animation: pulse 2s infinite; margin-left:8px; vertical-align:middle; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .kpi { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 13px; text-align: center; }
+  .kpi.live-open { border-color:#ff525444; background:#1a0d0d; }
+  .kpi .label { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+  .kpi .val { font-size: 1.4rem; font-weight: 700; }
+  .kpi .sub { font-size: 0.65rem; color: #444; margin-top: 3px; }
+
+  .green { color: #00e676; } .red { color: #ff5252; } .blue { color: #40c4ff; }
+  .gold { color: #ffd740; } .orange { color: #ffab40; }
+
+  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+             padding: 16px; margin-bottom: 16px; }
+  .section h2 { font-size: 0.74rem; color: #666; text-transform: uppercase;
+                letter-spacing: 1px; margin-bottom: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { color: #444; font-weight: 500; text-align: right; padding: 5px 9px;
+       border-bottom: 1px solid #222; font-size: 0.72rem; }
+  th:first-child { text-align: left; }
+  td { text-align: right; padding: 6px 9px; border-bottom: 1px solid #1c1c1c; }
+  td:first-child { text-align: left; color: #fff; font-weight: 600; }
+  tr:hover td { background: #222; }
+
+  .chart-wrap { position: relative; height: 220px; }
+  .charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .charts-2 { grid-template-columns: 1fr; } }
+
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.67rem; font-weight: 700; }
+  .tag-tp  { background:#0d2a1a; color:#00e676; }
+  .tag-sl  { background:#2a0d0d; color:#ff5252; }
+  .tag-to  { background:#2a2500; color:#ffd740; }
+  .tag-def { background:#1a1a2a; color:#aaa; }
+  .tag-open { background:#2a1500; color:#ffab40; }
+
+  /* Open trades panel */
+  .open-row { background:#1a0d00; border:1px solid #ffab4022; border-radius:8px;
+              padding:16px; margin-bottom:16px; }
+  .open-row h2 { font-size:.74rem; color:#ffab40; text-transform:uppercase; letter-spacing:1px; margin-bottom:13px; }
+
+  .footer { color: #333; font-size: 0.68rem; text-align: right; margin-top: 10px; }
+  .refresh-btn { background:#1a1a1a; border:1px solid #2a2a2a; color:#666; padding:4px 12px;
+                 border-radius:4px; cursor:pointer; font-size:.75rem; font-family:inherit;
+                 margin-left:8px; }
+  .refresh-btn:hover { color:#fff; border-color:#444; }
+</style>
+</head>
+<body>
+
+<h1>CR Bot <span class="live-badge">⬤ LIVE</span></h1>
+<div class="subtitle">
+  ADA / PEPE / NOT &nbsp;|&nbsp; v3 engine &nbsp;|&nbsp; $20 USDT / trade &nbsp;|&nbsp; R:R 1:1 tp=sl=1.5x
+  <button class="refresh-btn" onclick="load()">↻ Actualizar</button>
+</div>
+
+<!-- KPIs globales -->
+<div class="kpi-row" id="kpis-global"></div>
+
+<!-- Trades abiertos -->
+<div class="open-row">
+  <h2>⚡ Posiciones abiertas</h2>
+  <table><thead><tr>
+    <th>Par</th><th>Side</th><th>Entrada</th><th>TP</th><th>SL</th>
+    <th>Hora apertura</th><th>RSI</th><th>Score L/S</th>
+  </tr></thead><tbody id="open-trades"></tbody></table>
+</div>
+
+<!-- Por par -->
+<div class="section">
+  <h2>Rendimiento por par</h2>
+  <table><thead><tr>
+    <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th>
+    <th>W%</th><th>PnL</th><th>Mejor</th><th>Peor</th><th>Abiertos</th>
+  </tr></thead><tbody id="pair-table"></tbody></table>
+</div>
+
+<!-- Charts -->
+<div class="charts-2">
+  <div class="section"><h2>PnL acumulado</h2><div class="chart-wrap"><canvas id="pnlChart"></canvas></div></div>
+  <div class="section"><h2>Razón de cierre</h2><div class="chart-wrap"><canvas id="reasonChart"></canvas></div></div>
+</div>
+
+<!-- Análisis por lado -->
+<div class="section">
+  <h2>Rendimiento por lado (LONG vs SHORT)</h2>
+  <table><thead><tr>
+    <th>Lado</th><th>Trades</th><th>W%</th><th>PnL</th><th>Mejor</th><th>Peor</th>
+  </tr></thead><tbody id="side-table"></tbody></table>
+</div>
+
+<!-- Últimos trades -->
+<div class="section">
+  <h2>Últimos 50 trades cerrados</h2>
+  <table><thead><tr>
+    <th>Fecha/Hora</th><th>Par</th><th>Side</th><th>Razón</th>
+    <th>PnL</th><th>RSI</th><th>Score</th><th>Vela cierre</th>
+  </tr></thead><tbody id="recent-table"></tbody></table>
+</div>
+
+<div class="footer" id="footer">—</div>
+
+<script>
+const SB_URL = 'https://xjznnlzvurfwrhomkxed.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+
+const PAIRS = ['1000PEPE/USDT', 'ADA/USDT', 'NOT/USDT'];
+const SN  = s => s.replace('1000','').replace('/USDT','');
+const fmt = (n, d=2) => n == null ? '—' : (n>=0?'+':'')+Number(n).toFixed(d);
+const pct = (w,t) => t ? (w/t*100).toFixed(1)+'%' : '—';
+
+let charts = {};
+
+function st(arr) {
+  const closed = arr.filter(t => t.status === 'closed');
+  const nTP  = closed.filter(t => t.close_reason === 'TP').length;
+  const nSL  = closed.filter(t => t.close_reason === 'SL').length;
+  const nTO  = closed.filter(t => t.close_reason === 'TIMEOUT').length;
+  const wins   = closed.filter(t => t.pnl != null && t.pnl > 0);
+  const losses = closed.filter(t => t.pnl != null && t.pnl < 0);
+  const pnl    = closed.reduce((s,t) => s+(t.pnl||0), 0);
+  const best   = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
+  const worst  = losses.length ? Math.min(...losses.map(t=>t.pnl)) : null;
+  return { closed: closed.length, nTP, nSL, nTO,
+           wins: wins.length, losses: losses.length, pnl, best, worstSL: worst,
+           wr: closed.length ? wins.length/closed.length*100 : 0 };
+}
+
+function renderGlobalKPIs(all) {
+  const open = all.filter(t => t.status === 'open');
+  const s = st(all);
+  const openSyms = open.map(t => SN(t.symbol||'')).join(', ') || '—';
+  const unrealized = open.reduce((acc,t) => acc, 0); // placeholder
+
+  document.getElementById('kpis-global').innerHTML = [
+    { l:'Trades cerrados', v: s.closed,                c:'blue',  sub:`${s.nTP}TP / ${s.nSL}SL / ${s.nTO}TO` },
+    { l:'Win Rate',        v: pct(s.wins,s.closed),    c: s.wr>=50?'green':'red', sub:`${s.wins}W / ${s.losses}L` },
+    { l:'PnL realizado',   v: fmt(s.pnl)+' U',         c: s.pnl>=0?'green':'red', sub:'' },
+    { l:'Posiciones open', v: open.length,              c: open.length?'orange':'blue', sub: openSyms, extra: open.length?'live-open':'' },
+    { l:'Mejor trade',     v: fmt(s.best)+' U',         c:'green', sub:'' },
+    { l:'Peor trade',      v: s.worstSL!=null?fmt(s.worstSL)+' U':'—', c:'red', sub:'' },
+  ].map(k=>`<div class="kpi ${k.extra||''}">
+    <div class="label">${k.l}</div>
+    <div class="val ${k.c}">${k.v}</div>
+    <div class="sub">${k.sub}</div>
+  </div>`).join('');
+}
+
+function renderOpenTrades(all) {
+  const open = all.filter(t => t.status === 'open');
+  const tbody = document.getElementById('open-trades');
+  if (!open.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="color:#333;text-align:center;padding:16px">Sin posiciones abiertas</td></tr>';
+    return;
+  }
+  tbody.innerHTML = open.map(t => `<tr>
+    <td>${SN(t.symbol||'')}</td>
+    <td>${t.side==='BUY'?'<span class="green">LONG</span>':'<span class="red">SHORT</span>'}</td>
+    <td>${t.entry!=null?Number(t.entry).toPrecision(5):'—'}</td>
+    <td class="green">${t.tp!=null?Number(t.tp).toPrecision(5):'—'}</td>
+    <td class="red">${t.sl!=null?Number(t.sl).toPrecision(5):'—'}</td>
+    <td style="color:#555">${(t.open_time||'').slice(5,16)}</td>
+    <td style="color:#555">${t.entry_rsi!=null?Number(t.entry_rsi).toFixed(1):'—'}</td>
+    <td style="color:#555;font-size:.7rem">${t.entry_long_score!=null?`L${t.entry_long_score}/S${t.entry_short_score}`:'—'}</td>
+  </tr>`).join('');
+}
+
+function renderPairTable(all) {
+  document.getElementById('pair-table').innerHTML = PAIRS.map(sym => {
+    const p  = all.filter(t => t.symbol === sym);
+    const po = p.filter(t => t.status==='open').length;
+    const s  = st(p);
+    return `<tr>
+      <td>${SN(sym)}</td><td>${s.closed}</td>
+      <td class="green">${s.nTP}</td><td class="red">${s.nSL}</td>
+      <td style="color:#777">${s.nTO}</td>
+      <td class="${s.wr>=50?'green':'red'}">${pct(s.wins,s.closed)}</td>
+      <td class="${s.pnl>=0?'green':'red'}">${fmt(s.pnl)}</td>
+      <td class="green">${fmt(s.best)}</td>
+      <td class="red">${s.worstSL!=null?fmt(s.worstSL):'—'}</td>
+      <td class="${po?'orange':''}">${po||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderSideTable(all) {
+  const sides = { BUY: 'LONG', SELL: 'SHORT' };
+  document.getElementById('side-table').innerHTML = Object.entries(sides).map(([side, label]) => {
+    const p = all.filter(t => t.side === side);
+    const s = st(p);
+    return `<tr>
+      <td class="${side==='BUY'?'green':'red'}">${label}</td>
+      <td>${s.closed}</td>
+      <td class="${s.wr>=50?'green':'red'}">${pct(s.wins,s.closed)}</td>
+      <td class="${s.pnl>=0?'green':'red'}">${fmt(s.pnl)}</td>
+      <td class="green">${fmt(s.best)}</td>
+      <td class="red">${s.worstSL!=null?fmt(s.worstSL):'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPnlChart(all) {
+  const closed = all.filter(t=>t.status==='closed')
+    .sort((a,b)=>new Date(a.close_time)-new Date(b.close_time));
+  let cum = 0;
+  const pts = closed.map(t => {
+    cum += (t.pnl||0);
+    return { x:(t.close_time||'').slice(5,16), y:+cum.toFixed(4) };
+  });
+  if (charts['pnl']) charts['pnl'].destroy();
+  const color = cum >= 0 ? '#00e676' : '#ff5252';
+  charts['pnl'] = new Chart(document.getElementById('pnlChart').getContext('2d'), {
+    type:'line',
+    data:{ datasets:[{ label:'PnL', data:pts, borderColor:color,
+      backgroundColor: color+'18', tension:.3, pointRadius:2, fill:true }] },
+    options:{ responsive:true, maintainAspectRatio:false, parsing:false,
+      scales:{ x:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}},
+               y:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}} },
+      plugins:{ legend:{display:false} } }
+  });
+}
+
+function renderReasonChart(all) {
+  const closed = all.filter(t=>t.status==='closed');
+  const reasons = {};
+  closed.forEach(t => { const r=t.close_reason||'?'; reasons[r]=(reasons[r]||0)+1; });
+  const labels = Object.keys(reasons);
+  const colorMap = { TP:'#00e676', SL:'#ff5252', TIMEOUT:'#ffd740' };
+  if (charts['reason']) charts['reason'].destroy();
+  charts['reason'] = new Chart(document.getElementById('reasonChart').getContext('2d'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data:Object.values(reasons),
+      backgroundColor: labels.map(l=>colorMap[l]||'#555'), borderWidth:0 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#888', font:{size:11} } } } }
+  });
+}
+
+function renderRecentTable(all) {
+  const recent = [...all].filter(t=>t.status==='closed')
+    .sort((a,b)=>new Date(b.close_time)-new Date(a.close_time)).slice(0,50);
+  const tMap = {TP:'tag-tp', SL:'tag-sl', TIMEOUT:'tag-to'};
+  document.getElementById('recent-table').innerHTML = recent.map(t => {
+    const r = t.close_reason||'?';
+    return `<tr>
+      <td style="color:#555">${(t.close_time||'').slice(5,16)}</td>
+      <td>${SN(t.symbol||'')}</td>
+      <td>${t.side==='BUY'?'<span class="green">L</span>':'<span class="red">S</span>'}</td>
+      <td><span class="tag ${tMap[r]||'tag-def'}">${r}</span></td>
+      <td class="${(t.pnl||0)>=0?'green':'red'}">${fmt(t.pnl)}</td>
+      <td style="color:#555">${t.entry_rsi!=null?Number(t.entry_rsi).toFixed(1):'—'}</td>
+      <td style="color:#555;font-size:.7rem">${t.entry_long_score!=null?`L${t.entry_long_score}/S${t.entry_short_score}`:'—'}</td>
+      <td style="color:#555;font-size:.7rem">${t.close_candle_type||'—'}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:#333;text-align:center;padding:16px">Sin trades cerrados</td></tr>';
+}
+
+async function load() {
+  document.getElementById('footer').textContent = 'Cargando…';
+  const { data, error } = await sb.from('trades')
+    .select('*')
+    .eq('bot_variant', 'cr_v3_live')
+    .order('open_time', { ascending: false })
+    .limit(500);
+
+  if (error) {
+    document.getElementById('footer').textContent = 'Error: ' + error.message;
+    return;
+  }
+
+  const all = data || [];
+  renderGlobalKPIs(all);
+  renderOpenTrades(all);
+  renderPairTable(all);
+  renderSideTable(all);
+  renderPnlChart(all);
+  renderReasonChart(all);
+  renderRecentTable(all);
+
+  const now = new Date().toLocaleString('es-AR');
+  const closed = all.filter(t=>t.status==='closed').length;
+  const open   = all.filter(t=>t.status==='open').length;
+  document.getElementById('footer').textContent =
+    `Última actualización: ${now} — ${closed} cerrados / ${open} abiertos`;
+}
+
+load();
+setInterval(load, 30000); // auto-refresh cada 30s
+</script>
+</body>
+</html>
