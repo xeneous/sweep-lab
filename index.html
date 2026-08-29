@@ -3,98 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CR Bot v3 — Dashboard</title>
+<title>CR Bot — Dashboard v3 / v4 / v5</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #0d0d0d; color: #e0e0e0; font-family: 'Segoe UI', monospace; padding: 20px; }
   h1 { color: #fff; font-size: 1.3rem; margin-bottom: 4px; }
-  .subtitle { color: #555; font-size: 0.78rem; margin-bottom: 20px; }
+  .subtitle { color: #555; font-size: 0.75rem; margin-bottom: 18px; }
 
-  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 22px; }
-  .kpi { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 14px; text-align: center; }
-  .kpi .label { font-size: 0.68rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
-  .kpi .val { font-size: 1.5rem; font-weight: 700; }
-  .kpi .sub { font-size: 0.68rem; color: #444; margin-top: 4px; }
-  .green { color: #00e676; } .red { color: #ff5252; } .blue { color: #40c4ff; } .gold { color: #ffd740; }
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+  .tab { padding: 7px 18px; border-radius: 6px; border: 1px solid #2a2a2a;
+         background: #1a1a1a; color: #666; cursor: pointer; font-size: 0.8rem;
+         font-family: inherit; transition: all .15s; }
+  .tab.active { background: #222; color: #fff; border-color: #444; }
+  .tab:hover:not(.active) { color: #aaa; }
 
-  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 16px; margin-bottom: 18px; }
-  .section h2 { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
 
-  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
-  th { color: #444; font-weight: 500; text-align: right; padding: 6px 10px; border-bottom: 1px solid #222; }
+  /* KPIs */
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 10px; margin-bottom: 20px; }
+  .kpi { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 13px; text-align: center; }
+  .kpi .label { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+  .kpi .val { font-size: 1.4rem; font-weight: 700; }
+  .kpi .sub { font-size: 0.65rem; color: #444; margin-top: 3px; }
+
+  /* Comparativa KPIs side-by-side */
+  .cmp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+  .cmp-col h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+                margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid #2a2a2a; }
+  .v3-label { color: #40c4ff; } .v4-label { color: #ea80fc; }
+
+  .green { color: #00e676; } .red { color: #ff5252; } .blue { color: #40c4ff; }
+  .gold { color: #ffd740; } .purple { color: #ea80fc; }
+
+  .section { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px;
+             padding: 16px; margin-bottom: 16px; }
+  .section h2 { font-size: 0.74rem; color: #666; text-transform: uppercase;
+                letter-spacing: 1px; margin-bottom: 13px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  th { color: #444; font-weight: 500; text-align: right; padding: 5px 9px;
+       border-bottom: 1px solid #222; font-size: 0.72rem; }
   th:first-child { text-align: left; }
-  td { text-align: right; padding: 7px 10px; border-bottom: 1px solid #1c1c1c; }
+  td { text-align: right; padding: 6px 9px; border-bottom: 1px solid #1c1c1c; }
   td:first-child { text-align: left; color: #fff; font-weight: 600; }
   tr:hover td { background: #222; }
 
-  .charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  @media (max-width: 680px) { .charts-2 { grid-template-columns: 1fr; } }
-  .chart-wrap { position: relative; height: 240px; }
+  .chart-wrap { position: relative; height: 220px; }
+  .charts-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+  @media (max-width: 700px) { .charts-2 { grid-template-columns: 1fr; } .cmp-grid { grid-template-columns: 1fr; } }
 
-  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.68rem; font-weight: 700; }
+  .tag { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 0.67rem; font-weight: 700; }
   .tag-tp  { background:#0d2a1a; color:#00e676; }
   .tag-sl  { background:#2a0d0d; color:#ff5252; }
   .tag-to  { background:#2a2500; color:#ffd740; }
   .tag-def { background:#1a1a2a; color:#aaa; }
+  .tag-v4  { background:#2a0d2a; color:#ea80fc; font-size:.6rem; margin-left:3px; }
 
-  .footer { color: #333; font-size: 0.7rem; text-align: right; margin-top: 10px; }
+  .footer { color: #333; font-size: 0.68rem; text-align: right; margin-top: 10px; }
+  .badge { display:inline-block; padding:1px 5px; border-radius:3px; font-size:.6rem; font-weight:700; margin-left:4px; vertical-align:middle; }
+  .bdg-v3 { background:#0d1f2a; color:#40c4ff; }
+  .bdg-v4 { background:#1f0d2a; color:#ea80fc; }
 </style>
 </head>
 <body>
 
-<h1>CR Bot v3</h1>
-<div class="subtitle" id="sub">R:R 1:1 | tp_mult=1.5 sl_mult=1.5 | Score: RSI + Mechas + Momentum + Volumen</div>
+<h1>CR Bot Dashboard <span class="badge bdg-v3">v3</span> <span class="badge bdg-v4">v4</span> <span class="badge" style="background:#0d2a0d;color:#69f0ae">v5</span></h1>
+<div class="subtitle">R:R 1:1 | tp=sl=1.5x | v5: ADX≤25 + spike cooldown | Pares: PEPE / SHIB / ADA / NOT / DOGE / FLOKI</div>
 
-<div class="kpi-row" id="kpis"></div>
-
-<div class="section">
-  <h2>Por par</h2>
-  <table>
-    <thead><tr>
-      <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th><th>WR%</th>
-      <th>PnL</th><th>Mejor TP</th><th>Peor SL</th><th>Open</th>
-    </tr></thead>
-    <tbody id="pairBody"></tbody>
-  </table>
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('v3')">v3 — Base</button>
+  <button class="tab" onclick="switchTab('v4')">v4 — Hammer</button>
+  <button class="tab" onclick="switchTab('v5')">v5 — ADX</button>
+  <button class="tab" onclick="switchTab('cmp')">Comparativa</button>
 </div>
 
-<div class="section">
-  <h2>PnL acumulado</h2>
-  <div class="chart-wrap"><canvas id="pnlChart"></canvas></div>
-</div>
-
-<div class="charts-2">
+<!-- Panel V3 -->
+<div id="panel-v3" class="panel active">
+  <div class="kpi-row" id="kpis-v3"></div>
   <div class="section">
-    <h2>Win Rate por par</h2>
-    <div class="chart-wrap"><canvas id="wrChart"></canvas></div>
+    <h2>Por par — v3</h2>
+    <table><thead><tr>
+      <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th>
+      <th>W%</th><th>PnL</th><th>Best</th><th>Worst</th><th>Open</th>
+    </tr></thead><tbody id="pair-v3"></tbody></table>
+  </div>
+  <div class="charts-2">
+    <div class="section"><h2>PnL acumulado v3</h2><div class="chart-wrap"><canvas id="pnlChart-v3"></canvas></div></div>
+    <div class="section"><h2>Razón de cierre v3</h2><div class="chart-wrap"><canvas id="reasonChart-v3"></canvas></div></div>
   </div>
   <div class="section">
-    <h2>Closes: TP / SL / TIMEOUT</h2>
-    <div class="chart-wrap"><canvas id="reasonChart"></canvas></div>
+    <h2>Análisis vela de cierre v3</h2>
+    <table><thead><tr><th>Tipo</th><th>Total</th><th>TP</th><th>SL</th><th>TO</th><th>W%</th></tr></thead>
+    <tbody id="candle-v3"></tbody></table>
+  </div>
+  <div class="section">
+    <h2>Últimos 30 trades v3</h2>
+    <table><thead><tr>
+      <th>Hora</th><th>Par</th><th>Side</th><th>Razón</th><th>PnL</th><th>RSI</th><th>Score</th><th>Vela</th>
+    </tr></thead><tbody id="recent-v3"></tbody></table>
   </div>
 </div>
 
-<div class="section">
-  <h2>Vela de cierre — análisis</h2>
-  <table>
-    <thead><tr>
-      <th>Tipo vela</th><th>Trades</th><th>TP</th><th>SL</th><th>WR%</th>
-    </tr></thead>
-    <tbody id="candleBody"></tbody>
-  </table>
+<!-- Panel V4 -->
+<div id="panel-v4" class="panel">
+  <div class="kpi-row" id="kpis-v4"></div>
+  <div class="section">
+    <h2>Por par — v4 <span style="color:#ea80fc;font-size:.7rem">🔨 Hammer detection</span></h2>
+    <table><thead><tr>
+      <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th>
+      <th>W%</th><th>PnL</th><th>Best</th><th>Worst</th><th>Open</th>
+    </tr></thead><tbody id="pair-v4"></tbody></table>
+  </div>
+  <div class="charts-2">
+    <div class="section"><h2>PnL acumulado v4</h2><div class="chart-wrap"><canvas id="pnlChart-v4"></canvas></div></div>
+    <div class="section"><h2>Razón de cierre v4</h2><div class="chart-wrap"><canvas id="reasonChart-v4"></canvas></div></div>
+  </div>
+  <div class="section">
+    <h2>Análisis vela de cierre v4</h2>
+    <table><thead><tr><th>Tipo</th><th>Total</th><th>TP</th><th>SL</th><th>TO</th><th>W%</th></tr></thead>
+    <tbody id="candle-v4"></tbody></table>
+  </div>
+  <div class="section">
+    <h2>Últimos 30 trades v4</h2>
+    <table><thead><tr>
+      <th>Hora</th><th>Par</th><th>Side</th><th>Razón</th><th>PnL</th><th>RSI</th><th>Score</th><th>Vela</th>
+    </tr></thead><tbody id="recent-v4"></tbody></table>
+  </div>
 </div>
 
-<div class="section">
-  <h2>Últimos 30 trades</h2>
-  <table>
-    <thead><tr>
-      <th>Hora</th><th>Par</th><th>Lado</th><th>Razón</th>
-      <th>PnL</th><th>RSI</th><th>Score L/S</th><th>Vela cierre</th>
-    </tr></thead>
-    <tbody id="recentBody"></tbody>
-  </table>
+<!-- Panel V5 -->
+<div id="panel-v5" class="panel">
+  <div class="kpi-row" id="kpis-v5"></div>
+  <div class="section">
+    <h2>Por par — v5 <span style="color:#69f0ae;font-size:.7rem">📈 ADX≤25 + spike cooldown</span></h2>
+    <table><thead><tr>
+      <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th>
+      <th>W%</th><th>PnL</th><th>Best</th><th>Worst</th><th>Open</th>
+    </tr></thead><tbody id="pair-v5"></tbody></table>
+  </div>
+  <div class="charts-2">
+    <div class="section"><h2>PnL acumulado v5</h2><div class="chart-wrap"><canvas id="pnlChart-v5"></canvas></div></div>
+    <div class="section"><h2>Razón de cierre v5</h2><div class="chart-wrap"><canvas id="reasonChart-v5"></canvas></div></div>
+  </div>
+  <div class="section">
+    <h2>Últimos 30 trades v5</h2>
+    <table><thead><tr>
+      <th>Hora</th><th>Par</th><th>Side</th><th>Razón</th><th>PnL</th><th>RSI</th><th>Score</th><th>Vela</th>
+    </tr></thead><tbody id="recent-v5"></tbody></table>
+  </div>
+</div>
+
+<!-- Panel Comparativa -->
+<div id="panel-cmp" class="panel">
+  <div class="cmp-grid">
+    <div class="cmp-col">
+      <h3 class="v3-label">v3 — Base score</h3>
+      <div class="kpi-row" id="kpis-cmp-v3" style="grid-template-columns: repeat(3,1fr);"></div>
+    </div>
+    <div class="cmp-col">
+      <h3 class="v4-label">v4 — + Hammer</h3>
+      <div class="kpi-row" id="kpis-cmp-v4" style="grid-template-columns: repeat(3,1fr);"></div>
+    </div>
+  </div>
+  <div class="section">
+    <h2>Win Rate por par — v3 (azul) vs v4 (violeta)</h2>
+    <div class="chart-wrap" style="height:260px"><canvas id="wrCmpChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2>PnL acumulado — v3 (azul) vs v4 (violeta)</h2>
+    <div class="chart-wrap" style="height:260px"><canvas id="pnlCmpChart"></canvas></div>
+  </div>
+  <div class="section">
+    <h2>Por par — comparativa</h2>
+    <table><thead><tr>
+      <th>Par</th>
+      <th class="blue">v3 TP</th><th class="blue">v3 SL</th><th class="blue">v3 W%</th><th class="blue">v3 PnL</th>
+      <th class="purple">v4 TP</th><th class="purple">v4 SL</th><th class="purple">v4 W%</th><th class="purple">v4 PnL</th>
+    </tr></thead><tbody id="pair-cmp"></tbody></table>
+  </div>
 </div>
 
 <div class="footer" id="footer">—</div>
@@ -104,156 +194,257 @@ const SB_URL = 'https://xjznnlzvurfwrhomkxed.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhqem5ubHp2dXJmd3Job21reGVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxODYyNDIsImV4cCI6MjEwMTc2MjI0Mn0.GAGSQ3oqTYq1zD96fQ6T--vACw8oWOUqYKWBRT9rqMc';
 const sb = supabase.createClient(SB_URL, SB_KEY);
 
-const PAIRS = ['1000PEPE/USDT','1000SHIB/USDT','XRP/USDT','1000BONK/USDT','NOT/USDT','ADA/USDT'];
-const SN = s => s.replace('1000','').replace('/USDT','');
+const PAIRS = ['1000PEPE/USDT','1000SHIB/USDT','ADA/USDT','NOT/USDT','DOGE/USDT','1000FLOKI/USDT'];
+const SN  = s => s.replace('1000','').replace('/USDT','');
 const fmt = (n, d=2) => n == null ? '—' : (n>=0?'+':'')+Number(n).toFixed(d);
 const pct = (w,t) => t ? (w/t*100).toFixed(1)+'%' : '—';
 
 let charts = {};
 
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach((t,i) => {
+    t.classList.toggle('active', ['v3','v4','v5','cmp'][i] === name);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+}
+
 function st(arr) {
-  const closed   = arr.filter(t => t.status==='closed');
-  // wins/losses por PnL real — null se ignora (no cuenta ni como win ni como loss)
-  const wins     = closed.filter(t => t.pnl != null && t.pnl > 0);
-  const losses   = closed.filter(t => t.pnl != null && t.pnl < 0);
-  const timeouts = closed.filter(t => t.close_reason === 'TIMEOUT');
-  const pnl      = closed.reduce((s,t) => s+(t.pnl||0), 0);
-  const best     = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
-  const worst    = losses.length ? Math.min(...losses.map(t=>t.pnl)) : null;
-  return { closed: closed.length, wins: wins.length, losses: losses.length,
-           timeouts: timeouts.length, pnl, best, worstSL: worst,
+  const closed = arr.filter(t => t.status === 'closed');
+  const nTP  = closed.filter(t => t.close_reason === 'TP').length;
+  const nSL  = closed.filter(t => t.close_reason === 'SL').length;
+  const nTO  = closed.filter(t => t.close_reason === 'TIMEOUT').length;
+  const wins   = closed.filter(t => t.pnl != null && t.pnl > 0);
+  const losses = closed.filter(t => t.pnl != null && t.pnl < 0);
+  const pnl    = closed.reduce((s,t) => s+(t.pnl||0), 0);
+  const best   = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
+  const worst  = losses.length ? Math.min(...losses.map(t=>t.pnl)) : null;
+  return { closed: closed.length, nTP, nSL, nTO,
+           wins: wins.length, losses: losses.length, pnl, best, worstSL: worst,
            wr: closed.length ? wins.length/closed.length*100 : 0 };
 }
 
-async function load() {
-  const { data, error } = await sb
-    .from('trades')
-    .select('*')
-    .eq('bot_variant', 'cr_v3_paper')
-    .order('open_time', { ascending: true });
-
-  if (error || !data) return;
-
-  const all   = data;
-  const open  = all.filter(t => t.status === 'open');
-  const closed= all.filter(t => t.status === 'closed');
-  const s     = st(all);
-
-  // KPIs
-  document.getElementById('kpis').innerHTML = [
-    { l:'Trades cerrados', v: s.closed, c:'blue', s:`${s.wins}TP / ${s.losses}SL / ${s.timeouts}TO` },
-    { l:'Win Rate (TP/total)', v: pct(s.wins, s.closed), c: s.wr>=50?'green':'red', s:'' },
+function renderKPIs(id, s, openTrades) {
+  const openSyms = openTrades.map(t => SN(t.symbol||'')).join(', ') || '—';
+  document.getElementById(id).innerHTML = [
+    { l:'Trades cerrados', v: s.closed, c:'blue',  s:`${s.nTP}TP / ${s.nSL}SL / ${s.nTO}TO` },
+    { l:'Win Rate',        v: pct(s.wins,s.closed), c: s.wr>=50?'green':'red', s:`${s.wins}W / ${s.losses}L` },
     { l:'PnL neto',        v: fmt(s.pnl)+' U', c: s.pnl>=0?'green':'red', s:'' },
-    { l:'Posiciones abiertas', v: open.length, c:'gold', s: open.map(t=>SN(t.symbol||'')).join(', ')||'—' },
-    { l:'Mejor TP',        v: fmt(s.best)+' U', c:'green', s:'' },
-    { l:'Peor SL',         v: s.worstSL!=null ? fmt(s.worstSL)+' U' : '—', c:'red', s:'' },
+    { l:'Abiertos',        v: openTrades.length, c:'gold', s: openSyms },
+    { l:'Mejor trade',     v: fmt(s.best)+' U', c:'green', s:'' },
+    { l:'Peor trade',      v: s.worstSL!=null?fmt(s.worstSL)+' U':'—', c:'red', s:'' },
   ].map(k=>`<div class="kpi"><div class="label">${k.l}</div>
     <div class="val ${k.c}">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
+}
 
-  // Pair table
-  document.getElementById('pairBody').innerHTML = PAIRS.map(sym => {
-    const p   = all.filter(t => t.symbol === sym);
-    const po  = p.filter(t => t.status==='open').length;
-    const s   = st(p);
-    const wrc = s.wr>=50?'green':'red';
-    const pc  = s.pnl>=0?'green':'red';
+function renderPairTable(id, all) {
+  document.getElementById(id).innerHTML = PAIRS.map(sym => {
+    const p  = all.filter(t => t.symbol === sym);
+    const po = p.filter(t => t.status==='open').length;
+    const s  = st(p);
     return `<tr>
       <td>${SN(sym)}</td><td>${s.closed}</td>
-      <td class="green">${s.wins}</td><td class="red">${s.losses}</td>
-      <td style="color:#888">${s.timeouts}</td>
-      <td class="${wrc}">${pct(s.wins,s.closed)}</td>
-      <td class="${pc}">${fmt(s.pnl)}</td>
+      <td class="green">${s.nTP}</td><td class="red">${s.nSL}</td>
+      <td style="color:#777">${s.nTO}</td>
+      <td class="${s.wr>=50?'green':'red'}">${pct(s.wins,s.closed)}</td>
+      <td class="${s.pnl>=0?'green':'red'}">${fmt(s.pnl)}</td>
       <td class="green">${fmt(s.best)}</td>
       <td class="red">${s.worstSL!=null?fmt(s.worstSL):'—'}</td>
       <td class="${po?'gold':''}">${po||'—'}</td>
     </tr>`;
   }).join('');
+}
 
-  // PnL chart
+function renderPnlChart(id, all, color) {
+  const closed = all.filter(t=>t.status==='closed')
+    .sort((a,b)=>new Date(a.close_time)-new Date(b.close_time));
   let cum = 0;
-  const pts = closed
-    .sort((a,b) => new Date(a.close_time)-new Date(b.close_time))
-    .map(t => { cum += (t.pnl||0); return { x: (t.close_time||'').slice(11,16), y: +cum.toFixed(4) }; });
-  if (charts.pnl) charts.pnl.destroy();
-  charts.pnl = new Chart(document.getElementById('pnlChart').getContext('2d'), {
+  const pts = closed.map(t => {
+    cum += (t.pnl||0);
+    return { x:(t.close_time||'').slice(11,16), y:+cum.toFixed(4) };
+  });
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
     type:'line',
-    data:{ datasets:[{ label:'PnL acumulado', data: pts, borderColor: cum>=0?'#00e676':'#ff5252',
-      backgroundColor: cum>=0?'rgba(0,230,118,.07)':'rgba(255,82,82,.07)',
-      tension:.3, pointRadius:2, fill:true }] },
+    data:{ datasets:[{ label:'PnL acumulado', data:pts, borderColor:color,
+      backgroundColor: color+'15', tension:.3, pointRadius:2, fill:true }] },
     options:{ responsive:true, maintainAspectRatio:false, parsing:false,
-      scales:{ x:{type:'category',ticks:{color:'#555',maxTicksLimit:10},grid:{color:'#1e1e1e'}},
-               y:{ticks:{color:'#555'},grid:{color:'#1e1e1e'}} },
+      scales:{ x:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}},
+               y:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}} },
       plugins:{ legend:{display:false} } }
   });
+}
 
-  // WR by pair
-  const wrVals = PAIRS.map(s => { const p=all.filter(t=>t.symbol===s); return +st(p).wr.toFixed(1); });
-  if (charts.wr) charts.wr.destroy();
-  charts.wr = new Chart(document.getElementById('wrChart').getContext('2d'), {
-    type:'bar',
-    data:{ labels: PAIRS.map(SN),
-      datasets:[{ data: wrVals,
-        backgroundColor: wrVals.map(v=>v>=50?'rgba(0,230,118,.5)':'rgba(255,82,82,.5)'),
-        borderColor:     wrVals.map(v=>v>=50?'#00e676':'#ff5252'), borderWidth:1 }] },
-    options:{ responsive:true, maintainAspectRatio:false,
-      scales:{ x:{ticks:{color:'#555'},grid:{color:'#1e1e1e'}},
-               y:{min:0,max:100,ticks:{color:'#555',callback:v=>v+'%'},grid:{color:'#1e1e1e'}} },
-      plugins:{ legend:{display:false} } }
-  });
-
-  // Reason donut
+function renderReasonChart(id, all) {
+  const closed = all.filter(t=>t.status==='closed');
   const reasons = {};
   closed.forEach(t => { const r=t.close_reason||'?'; reasons[r]=(reasons[r]||0)+1; });
-  const rlabels = Object.keys(reasons);
-  const rcolors = { TP:'#00e676', SL:'#ff5252', TIMEOUT:'#ffd740', WEAK_ENTRY:'#aa88ff', '?':'#555' };
-  if (charts.reason) charts.reason.destroy();
-  charts.reason = new Chart(document.getElementById('reasonChart').getContext('2d'), {
+  const labels = Object.keys(reasons);
+  const colorMap = { TP:'#00e676', SL:'#ff5252', TIMEOUT:'#ffd740' };
+  if (charts[id]) charts[id].destroy();
+  charts[id] = new Chart(document.getElementById(id).getContext('2d'), {
     type:'doughnut',
-    data:{ labels: rlabels,
-      datasets:[{ data: rlabels.map(l=>reasons[l]),
-        backgroundColor: rlabels.map(l=>rcolors[l]||'#888'), borderWidth:1, borderColor:'#1a1a1a' }] },
+    data:{ labels, datasets:[{ data:Object.values(reasons),
+      backgroundColor: labels.map(l=>colorMap[l]||'#555'), borderWidth:0 }] },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ legend:{ position:'right', labels:{ color:'#888', font:{size:11} } } } }
+      plugins:{ legend:{ position:'bottom', labels:{ color:'#888', font:{size:11} } } } }
   });
+}
 
-  // Candle close analysis
-  const ctypes = {};
+function renderCandleTable(id, all) {
+  const closed = all.filter(t=>t.status==='closed');
+  const ct = {};
   closed.forEach(t => {
-    const ct = t.close_candle_type || 'UNKNOWN';
-    if (!ctypes[ct]) ctypes[ct] = { total:0, tp:0, sl:0 };
-    ctypes[ct].total++;
-    if (t.close_reason==='TP') ctypes[ct].tp++;
-    if (t.close_reason==='SL') ctypes[ct].sl++;
+    const k = t.close_candle_type || 'UNKNOWN';
+    if (!ct[k]) ct[k] = {total:0,tp:0,sl:0,to:0};
+    ct[k].total++;
+    if (t.close_reason==='TP')      ct[k].tp++;
+    if (t.close_reason==='SL')      ct[k].sl++;
+    if (t.close_reason==='TIMEOUT') ct[k].to++;
   });
-  document.getElementById('candleBody').innerHTML =
-    Object.entries(ctypes).sort((a,b)=>b[1].total-a[1].total).map(([ct,v]) =>
-      `<tr><td>${ct}</td><td>${v.total}</td>
+  document.getElementById(id).innerHTML =
+    Object.entries(ct).sort((a,b)=>b[1].total-a[1].total).map(([k,v]) =>
+      `<tr><td>${k}</td><td>${v.total}</td>
        <td class="green">${v.tp}</td><td class="red">${v.sl}</td>
+       <td style="color:#777">${v.to}</td>
        <td class="${v.total&&v.tp/v.total>=.5?'green':'red'}">${pct(v.tp,v.total)}</td>
       </tr>`
-    ).join('') || '<tr><td colspan="5" style="color:#444;text-align:center">Sin datos</td></tr>';
+    ).join('') || '<tr><td colspan="6" style="color:#333;text-align:center">Sin datos</td></tr>';
+}
 
-  // Recent 30
+function renderRecentTable(id, all) {
   const recent = [...all].filter(t=>t.status==='closed')
     .sort((a,b)=>new Date(b.close_time)-new Date(a.close_time)).slice(0,30);
-  const tagMap = { TP:'tag-tp', SL:'tag-sl', TIMEOUT:'tag-to' };
-  document.getElementById('recentBody').innerHTML = recent.map(t => {
-    const pc = (t.pnl||0)>=0?'green':'red';
-    const r  = t.close_reason||'?';
+  const tMap = {TP:'tag-tp',SL:'tag-sl',TIMEOUT:'tag-to'};
+  document.getElementById(id).innerHTML = recent.map(t => {
+    const r = t.close_reason||'?';
     return `<tr>
-      <td style="color:#555">${(t.close_time||'').slice(11,16)}</td>
+      <td style="color:#555">${(t.close_time||'').slice(5,16)}</td>
       <td>${SN(t.symbol||'')}</td>
-      <td>${t.side==='BUY'?'<span style="color:#00e676">LONG</span>':'<span style="color:#ff5252">SHORT</span>'}</td>
-      <td><span class="tag ${tagMap[r]||'tag-def'}">${r}</span></td>
-      <td class="${pc}">${fmt(t.pnl)}</td>
-      <td style="color:#666">${t.entry_rsi!=null?Number(t.entry_rsi).toFixed(1):'—'}</td>
-      <td style="color:#666;font-size:.72rem">${t.entry_long_score!=null?`L${t.entry_long_score}/S${t.entry_short_score}`:'—'}</td>
-      <td style="color:#555;font-size:.72rem">${t.close_candle_type||'—'}</td>
+      <td>${t.side==='BUY'?'<span class="green">L</span>':'<span class="red">S</span>'}</td>
+      <td><span class="tag ${tMap[r]||'tag-def'}">${r}</span></td>
+      <td class="${(t.pnl||0)>=0?'green':'red'}">${fmt(t.pnl)}</td>
+      <td style="color:#555">${t.entry_rsi!=null?Number(t.entry_rsi).toFixed(1):'—'}</td>
+      <td style="color:#555;font-size:.7rem">${t.entry_long_score!=null?`L${t.entry_long_score}/S${t.entry_short_score}`:'—'}</td>
+      <td style="color:#555;font-size:.7rem">${t.close_candle_type||'—'}</td>
     </tr>`;
-  }).join('') || '<tr><td colspan="8" style="color:#444;text-align:center;padding:20px">Sin trades cerrados</td></tr>';
+  }).join('') || '<tr><td colspan="8" style="color:#333;text-align:center;padding:16px">Sin trades cerrados</td></tr>';
+}
 
+function renderComparativa(v3, v4) {
+  const sv3 = st(v3); const sv4 = st(v4);
+
+  // Mini KPIs comparativos
+  const mkKpi = (s) => [
+    { l:'Trades', v:s.closed, c:'blue' },
+    { l:'WR%', v:pct(s.wins,s.closed), c:s.wr>=50?'green':'red' },
+    { l:'PnL', v:fmt(s.pnl)+' U', c:s.pnl>=0?'green':'red' },
+  ].map(k=>`<div class="kpi"><div class="label">${k.l}</div>
+    <div class="val ${k.c}" style="font-size:1.1rem">${k.v}</div></div>`).join('');
+  document.getElementById('kpis-cmp-v3').innerHTML = mkKpi(sv3);
+  document.getElementById('kpis-cmp-v4').innerHTML = mkKpi(sv4);
+
+  // WR por par
+  const wrV3 = PAIRS.map(s => { const p=v3.filter(t=>t.symbol===s); return p.length ? +st(p).wr.toFixed(1) : 0; });
+  const wrV4 = PAIRS.map(s => { const p=v4.filter(t=>t.symbol===s); return p.length ? +st(p).wr.toFixed(1) : 0; });
+  if (charts['wrCmp']) charts['wrCmp'].destroy();
+  charts['wrCmp'] = new Chart(document.getElementById('wrCmpChart').getContext('2d'), {
+    type:'bar',
+    data:{ labels: PAIRS.map(SN),
+      datasets:[
+        { label:'v3', data:wrV3, backgroundColor:'rgba(64,196,255,.7)', borderRadius:4 },
+        { label:'v4', data:wrV4, backgroundColor:'rgba(234,128,252,.7)', borderRadius:4 },
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      scales:{ x:{ticks:{color:'#666'},grid:{display:false}},
+               y:{min:0,max:100,ticks:{color:'#666',callback:v=>v+'%'},grid:{color:'#1a1a1a'}} },
+      plugins:{ legend:{labels:{color:'#888'}},
+                annotation:{annotations:{line:{type:'line',yMin:50,yMax:50,
+                  borderColor:'#444',borderDash:[4,4],borderWidth:1}}} } }
+  });
+
+  // PnL acumulado comparativo
+  const cumSeries = (arr) => {
+    const c = arr.filter(t=>t.status==='closed')
+      .sort((a,b)=>new Date(a.close_time)-new Date(b.close_time));
+    let cum=0;
+    return c.map(t=>{ cum+=(t.pnl||0); return { x:(t.close_time||'').slice(11,16), y:+cum.toFixed(4) }; });
+  };
+  if (charts['pnlCmp']) charts['pnlCmp'].destroy();
+  charts['pnlCmp'] = new Chart(document.getElementById('pnlCmpChart').getContext('2d'), {
+    type:'line',
+    data:{ datasets:[
+      { label:'v3', data:cumSeries(v3), borderColor:'#40c4ff', backgroundColor:'rgba(64,196,255,.06)',
+        tension:.3, pointRadius:2, fill:true },
+      { label:'v4', data:cumSeries(v4), borderColor:'#ea80fc', backgroundColor:'rgba(234,128,252,.06)',
+        tension:.3, pointRadius:2, fill:true },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false, parsing:false,
+      scales:{ x:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}},
+               y:{ticks:{font:{size:10},color:'#444'},grid:{color:'#1a1a1a'}} },
+      plugins:{ legend:{labels:{color:'#888'}} } }
+  });
+
+  // Tabla comparativa por par
+  document.getElementById('pair-cmp').innerHTML = PAIRS.map(sym => {
+    const p3 = v3.filter(t=>t.symbol===sym); const s3 = st(p3);
+    const p4 = v4.filter(t=>t.symbol===sym); const s4 = st(p4);
+    return `<tr>
+      <td>${SN(sym)}</td>
+      <td class="green">${s3.nTP}</td><td class="red">${s3.nSL}</td>
+      <td class="${s3.wr>=50?'green':'red'}">${pct(s3.wins,s3.closed)}</td>
+      <td class="${s3.pnl>=0?'green':'red'}">${fmt(s3.pnl)}</td>
+      <td class="green">${s4.nTP}</td><td class="red">${s4.nSL}</td>
+      <td class="${s4.wr>=50?'green':'red'}">${pct(s4.wins,s4.closed)}</td>
+      <td class="${s4.pnl>=0?'green':'red'}">${fmt(s4.pnl)}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function load() {
+  const { data, error } = await sb
+    .from('trades').select('*')
+    .in('bot_variant', ['cr_v3_paper','cr_v4_paper','cr_v5_paper'])
+    .order('open_time', { ascending: true });
+
+  if (error || !data) { document.getElementById('footer').textContent = 'Error cargando datos'; return; }
+
+  const v3  = data.filter(t => t.bot_variant === 'cr_v3_paper');
+  const v4  = data.filter(t => t.bot_variant === 'cr_v4_paper');
+  const v5  = data.filter(t => t.bot_variant === 'cr_v5_paper');
+  const sv3 = st(v3); const sv4 = st(v4); const sv5 = st(v5);
+
+  // V3
+  renderKPIs('kpis-v3', sv3, v3.filter(t=>t.status==='open'));
+  renderPairTable('pair-v3', v3);
+  renderPnlChart('pnlChart-v3', v3, '#40c4ff');
+  renderReasonChart('reasonChart-v3', v3);
+  renderCandleTable('candle-v3', v3);
+  renderRecentTable('recent-v3', v3);
+
+  // V4
+  renderKPIs('kpis-v4', sv4, v4.filter(t=>t.status==='open'));
+  renderPairTable('pair-v4', v4);
+  renderPnlChart('pnlChart-v4', v4, '#ea80fc');
+  renderReasonChart('reasonChart-v4', v4);
+  renderCandleTable('candle-v4', v4);
+  renderRecentTable('recent-v4', v4);
+
+  // V5
+  renderKPIs('kpis-v5', sv5, v5.filter(t=>t.status==='open'));
+  renderPairTable('pair-v5', v5);
+  renderPnlChart('pnlChart-v5', v5, '#69f0ae');
+  renderReasonChart('reasonChart-v5', v5);
+  renderRecentTable('recent-v5', v5);
+
+  // Comparativa
+  renderComparativa(v3, v4);
+
+  const cv3 = v3.filter(t=>t.status==='closed').length;
+  const cv4 = v4.filter(t=>t.status==='closed').length;
+  const cv5 = v5.filter(t=>t.status==='closed').length;
   document.getElementById('footer').textContent =
-    `Actualizado ${new Date().toLocaleTimeString()} | ${closed.length} cerrados | ${open.length} abiertos | refresca en 30s`;
+    `Actualizado ${new Date().toLocaleTimeString()} | v3: ${cv3} | v4: ${cv4} | v5: ${cv5} cerrados | refresca en 30s`;
 }
 
 load();
