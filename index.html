@@ -53,7 +53,7 @@
   <h2>Por par</h2>
   <table>
     <thead><tr>
-      <th>Par</th><th>Trades</th><th>W</th><th>L</th><th>WR%</th>
+      <th>Par</th><th>Trades</th><th>TP</th><th>SL</th><th>TO</th><th>WR%</th>
       <th>PnL</th><th>Mejor TP</th><th>Peor SL</th><th>Open</th>
     </tr></thead>
     <tbody id="pairBody"></tbody>
@@ -112,13 +112,16 @@ const pct = (w,t) => t ? (w/t*100).toFixed(1)+'%' : '—';
 let charts = {};
 
 function st(arr) {
-  const closed = arr.filter(t => t.status==='closed');
-  const wins   = closed.filter(t => (t.pnl||0) > 0);
-  const losses = closed.filter(t => (t.pnl||0) <= 0);
-  const pnl    = closed.reduce((s,t) => s+(t.pnl||0), 0);
-  const best   = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
-  const worst  = closed.length ? Math.min(...closed.map(t=>t.pnl||0)) : 0;
-  return { closed: closed.length, wins: wins.length, losses: losses.length, pnl, best, worst,
+  const closed   = arr.filter(t => t.status==='closed');
+  // wins/losses por PnL real — null se ignora (no cuenta ni como win ni como loss)
+  const wins     = closed.filter(t => t.pnl != null && t.pnl > 0);
+  const losses   = closed.filter(t => t.pnl != null && t.pnl < 0);
+  const timeouts = closed.filter(t => t.close_reason === 'TIMEOUT');
+  const pnl      = closed.reduce((s,t) => s+(t.pnl||0), 0);
+  const best     = closed.length ? Math.max(...closed.map(t=>t.pnl||0)) : 0;
+  const worst    = losses.length ? Math.min(...losses.map(t=>t.pnl)) : null;
+  return { closed: closed.length, wins: wins.length, losses: losses.length,
+           timeouts: timeouts.length, pnl, best, worstSL: worst,
            wr: closed.length ? wins.length/closed.length*100 : 0 };
 }
 
@@ -126,7 +129,7 @@ async function load() {
   const { data, error } = await sb
     .from('trades')
     .select('*')
-    .in('bot_variant', ['cr_v3_paper','cr_paper','cr_v2_paper'])
+    .eq('bot_variant', 'cr_v3_paper')
     .order('open_time', { ascending: true });
 
   if (error || !data) return;
@@ -138,12 +141,12 @@ async function load() {
 
   // KPIs
   document.getElementById('kpis').innerHTML = [
-    { l:'Trades cerrados', v: s.closed, c:'blue', s:`${s.wins}W / ${s.losses}L` },
-    { l:'Win Rate',        v: pct(s.wins, s.closed), c: s.wr>=50?'green':'red', s:'' },
+    { l:'Trades cerrados', v: s.closed, c:'blue', s:`${s.wins}TP / ${s.losses}SL / ${s.timeouts}TO` },
+    { l:'Win Rate (TP/total)', v: pct(s.wins, s.closed), c: s.wr>=50?'green':'red', s:'' },
     { l:'PnL neto',        v: fmt(s.pnl)+' U', c: s.pnl>=0?'green':'red', s:'' },
     { l:'Posiciones abiertas', v: open.length, c:'gold', s: open.map(t=>SN(t.symbol||'')).join(', ')||'—' },
     { l:'Mejor TP',        v: fmt(s.best)+' U', c:'green', s:'' },
-    { l:'Peor SL',         v: fmt(s.worst)+' U', c:'red', s:'' },
+    { l:'Peor SL',         v: s.worstSL!=null ? fmt(s.worstSL)+' U' : '—', c:'red', s:'' },
   ].map(k=>`<div class="kpi"><div class="label">${k.l}</div>
     <div class="val ${k.c}">${k.v}</div><div class="sub">${k.s}</div></div>`).join('');
 
@@ -157,10 +160,11 @@ async function load() {
     return `<tr>
       <td>${SN(sym)}</td><td>${s.closed}</td>
       <td class="green">${s.wins}</td><td class="red">${s.losses}</td>
+      <td style="color:#888">${s.timeouts}</td>
       <td class="${wrc}">${pct(s.wins,s.closed)}</td>
       <td class="${pc}">${fmt(s.pnl)}</td>
       <td class="green">${fmt(s.best)}</td>
-      <td class="red">${fmt(s.worst)}</td>
+      <td class="red">${s.worstSL!=null?fmt(s.worstSL):'—'}</td>
       <td class="${po?'gold':''}">${po||'—'}</td>
     </tr>`;
   }).join('');
